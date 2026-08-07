@@ -110,8 +110,11 @@ export function RealTerminal() {
 
       fitAddonsRef.current.set(id, fitAddon);
 
-      // Create WebSocket connection with auto-reconnect helper
+      // Create WebSocket connection with auto-healing and reconnect retry
       const connectSocket = () => {
+        // Trigger auto-heal of PTY server via API
+        fetch("/api/terminal").catch(() => {});
+
         try {
           const ws = new WebSocket(PTY_WS_URL);
 
@@ -156,6 +159,17 @@ export function RealTerminal() {
             );
             const tabRef = terminalsRef.current.get(id);
             if (tabRef) tabRef.connected = false;
+
+            // Auto retry reconnect after 1.5 seconds if tab still exists
+            setTimeout(() => {
+              if (terminalsRef.current.has(id)) {
+                const reSocket = connectSocket();
+                if (reSocket) {
+                  const currentTab = terminalsRef.current.get(id);
+                  if (currentTab) currentTab.ws = reSocket;
+                }
+              }
+            }, 1500);
           };
 
           ws.onerror = () => {

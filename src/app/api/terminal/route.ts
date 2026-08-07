@@ -1,15 +1,49 @@
-import { exec } from "child_process";
+import { exec, spawn } from "child_process";
 import { promisify } from "util";
 import path from "path";
 import fs from "fs";
+import net from "net";
 
 const execAsync = promisify(exec);
 
 // All terminal commands run inside workspace/ — isolated from IDE source
 const WORKSPACE_DIR = path.join(process.cwd(), "workspace");
 
+// Auto-start PTY WebSocket server on port 3002 if down
+function ensurePtyServerRunning() {
+  try {
+    const socket = new net.Socket();
+    socket.setTimeout(400);
+    socket.on("connect", () => {
+      socket.destroy();
+    });
+    socket.on("error", () => {
+      socket.destroy();
+      const ptyScript = path.join(process.cwd(), "server", "pty-server.mjs");
+      if (fs.existsSync(ptyScript)) {
+        const child = spawn("node", [ptyScript], {
+          detached: true,
+          stdio: "ignore",
+          cwd: process.cwd(),
+        });
+        child.unref();
+      }
+    });
+    socket.on("timeout", () => {
+      socket.destroy();
+    });
+    socket.connect(3002, "127.0.0.1");
+  } catch (e) {}
+}
+
+export async function GET() {
+  ensurePtyServerRunning();
+  return new Response(JSON.stringify({ status: "ok", ptyPort: 3002 }));
+}
+
 export async function POST(req: Request) {
   try {
+    ensurePtyServerRunning();
     const { command } = await req.json();
 
     if (!command || typeof command !== "string") {
@@ -37,7 +71,7 @@ export async function POST(req: Request) {
       env: {
         ...process.env,
         PATH: process.env.PATH || "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
-        HOME: process.env.HOME,
+        HOME: process.env.HOME || "/Users/chinmaybhatt",
       },
     });
 
@@ -45,7 +79,7 @@ export async function POST(req: Request) {
 
     return new Response(
       JSON.stringify({
-        output: output || "[Command executed successfully]",
+        output: output || "[Exit code 0]",
         type: stderr ? "warn" : "log",
         cwd: WORKSPACE_DIR,
       })
