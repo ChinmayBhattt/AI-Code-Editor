@@ -29,6 +29,7 @@ export function ChatPanel() {
     addMessage,
     isStreaming,
     setStreaming,
+    setStreamingContent,
     clearMessages,
     setError,
     error,
@@ -179,6 +180,11 @@ export function ChatPanel() {
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
         fullContent += chunk;
+        setStreamingContent(fullContent);
+      }
+
+      if (!fullContent.trim()) {
+        fullContent = "Updated project files based on your prompt.";
       }
 
       const assistantMessage = {
@@ -190,64 +196,44 @@ export function ChatPanel() {
         createdAt: new Date(),
       };
       addMessage(assistantMessage);
+      setStreamingContent("");
 
       // Parse file operations into Pending Changes
       const ops = parseFileOperations(fullContent);
 
-      // If in Build Mode, auto write files to disk & update open editor tabs!
-      if (aiConfig.mode === "build") {
-        for (const op of ops) {
-          if ((op.type === "create" || op.type === "edit") && op.content) {
-            await writeDiskFile(op.path, op.content);
-            openTab({
-              id: op.path,
-              fileId: op.path,
-              path: op.path,
-              name: op.path.split("/").pop() || op.path,
-              language: getLanguageFromPath(op.path),
-              content: op.content,
-            });
-            addLog(`Updated File: ${op.path}`, "success");
-          }
-        }
-        await syncFilesystem();
-      } else {
-        // In Plan Mode, save plan.md directly and create pending changes
-        for (const op of ops) {
-          if (op.path === "plan.md") {
-            await writeDiskFile("plan.md", op.content || "");
-            await syncFilesystem();
-            openTab({
-              id: "plan.md",
-              fileId: "plan.md",
-              path: "plan.md",
-              name: "plan.md",
-              language: "markdown",
-              content: op.content || "",
-            });
-          }
-        }
-
-        const newPending: PendingChange[] = [];
-        for (const op of ops) {
+      const newPending: PendingChange[] = [];
+      for (const op of ops) {
+        if ((op.type === "create" || op.type === "edit") && op.content) {
           const existing = files.find((f) => f.path === op.path);
           const originalContent = existing?.content || "";
-          const newContent = op.content || "";
+          const newContent = op.content;
 
           newPending.push({
             id: crypto.randomUUID(),
             path: op.path,
-            type: op.type === "delete" ? "delete" : existing ? "edit" : "create",
+            type: (op.type as string) === "delete" ? "delete" : existing ? "edit" : "create",
             content: newContent,
             originalContent,
             additions: newContent.split("\n").length,
             deletions: originalContent ? originalContent.split("\n").length : 0,
           });
-        }
 
-        if (newPending.length > 0) {
-          setPendingChanges(newPending);
+          // Open tab so inline diff highlights show up in Monaco Editor
+          openTab({
+            id: op.path,
+            fileId: op.path,
+            path: op.path,
+            name: op.path.split("/").pop() || op.path,
+            language: getLanguageFromPath(op.path),
+            content: newContent,
+          });
+
+          addLog(`AI Proposed Edit: ${op.path}`, "info");
         }
+      }
+
+      if (newPending.length > 0) {
+        setPendingChanges(newPending);
       }
     } catch (err: unknown) {
       const error = err as Error;

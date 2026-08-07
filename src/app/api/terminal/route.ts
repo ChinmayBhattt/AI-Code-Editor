@@ -19,14 +19,19 @@ function ensurePtyServerRunning() {
     });
     socket.on("error", () => {
       socket.destroy();
-      const ptyScript = path.join(process.cwd(), "server", "pty-server.mjs");
-      if (fs.existsSync(ptyScript)) {
-        const child = spawn("node", [ptyScript], {
-          detached: true,
-          stdio: "ignore",
-          cwd: process.cwd(),
-        });
-        child.unref();
+      const ptyScriptPath = path.resolve(process.cwd(), "server", "pty-server.mjs");
+      if (fs.existsSync(ptyScriptPath)) {
+        const nodeBinary = process.execPath || "node";
+        const childProcess = spawn(
+          /*turbopackIgnore: true*/ nodeBinary,
+          [ptyScriptPath],
+          {
+            detached: true,
+            stdio: "ignore",
+            cwd: process.cwd(),
+          }
+        );
+        childProcess.unref();
       }
     });
     socket.on("timeout", () => {

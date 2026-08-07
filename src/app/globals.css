@@ -32,3 +32,24 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #3f3f46;
 }
+
+/* Monaco Line Diff Highlights for Cursor/Antigravity style AI edits */
+.monaco-diff-line-added {
+  background-color: rgba(16, 185, 129, 0.22) !important;
+  border-left: 3px solid #10b981 !important;
+}
+
+.monaco-diff-gutter-added {
+  background-color: #10b981 !important;
+  width: 5px !important;
+}
+
+.monaco-diff-line-removed {
+  background-color: rgba(244, 63, 94, 0.22) !important;
+  border-left: 3px solid #f43f5e !important;
+}
+
+.monaco-diff-gutter-removed {
+  background-color: #f43f5e !important;
+  width: 5px !important;
+}
