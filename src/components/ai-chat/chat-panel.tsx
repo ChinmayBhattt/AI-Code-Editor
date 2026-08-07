@@ -9,12 +9,15 @@ import { ChatInput } from "./chat-input";
 import { parseFileOperations } from "@/lib/ai/file-operations";
 import { getLanguageFromPath } from "@/lib/utils";
 import type { PendingChange } from "@/types/project";
+import { ChatHistory } from "./chat-history";
 import {
   Sparkles,
   Trash2,
   Loader2,
   Check,
   X,
+  Plus,
+  Clock,
   FileCode,
   ChevronDown,
   ChevronUp,
@@ -37,11 +40,15 @@ export function ChatPanel() {
     setPendingChanges,
     clearPendingChanges,
     removePendingChange,
+    sessions,
+    historyOpen,
+    startNewChat,
+    toggleHistoryOpen,
   } = useChatStore();
 
   const { files, setFiles, projectName } = useProjectStore();
   const { activeTabId, tabs, openTab } = useEditorStore();
-  const { apiKeys, aiConfig, updateAIConfig, addLog } = useSettingsStore();
+  const { apiKeys, aiConfig, updateAIConfig, addLog, toggleRightSidebar } = useSettingsStore();
 
   const [showPendingDropdown, setShowPendingDropdown] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -246,11 +253,11 @@ export function ChatPanel() {
 
   return (
     <div className="flex h-full w-full flex-col bg-[#141417] text-zinc-300 relative">
-      {/* Header */}
-      <div className="flex h-9 items-center justify-between border-b border-zinc-800 px-3 text-xs font-semibold shrink-0">
+      {/* Header Toolbar */}
+      <div className="flex h-9 items-center justify-between border-b border-zinc-800 px-3 text-xs font-semibold shrink-0 bg-zinc-900/60">
         <div className="flex items-center gap-1.5 text-zinc-200">
           <Sparkles className="h-4 w-4 text-indigo-400" />
-          <span>AI ASSISTANT</span>
+          <span>Agent</span>
           <span
             className={`px-1.5 py-0.2 rounded text-[10px] uppercase tracking-wider font-mono font-bold ${
               aiConfig.mode === "plan"
@@ -258,17 +265,56 @@ export function ChatPanel() {
                 : "bg-blue-500/20 text-blue-300 border border-blue-500/30"
             }`}
           >
-            {aiConfig.mode} MODE
+            {aiConfig.mode}
           </span>
         </div>
-        <button
-          onClick={clearMessages}
-          title="Clear Chat"
-          className="rounded p-1 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
+
+        <div className="flex items-center gap-0.5">
+          {/* New Chat (+) Button */}
+          <button
+            onClick={startNewChat}
+            title="New Chat (+)"
+            className="rounded p-1.5 hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+
+          {/* History Button */}
+          <button
+            onClick={toggleHistoryOpen}
+            title="Chat History"
+            className={`relative rounded p-1.5 hover:bg-zinc-800 transition-colors ${
+              historyOpen ? "bg-zinc-800 text-indigo-400" : "text-zinc-400 hover:text-white"
+            }`}
+          >
+            <Clock className="h-4 w-4" />
+            {sessions.length > 0 && (
+              <span className="absolute top-1 right-1 flex h-1.5 w-1.5 rounded-full bg-indigo-500" />
+            )}
+          </button>
+
+          {/* Clear Current Messages Button */}
+          <button
+            onClick={clearMessages}
+            title="Clear Chat"
+            className="rounded p-1.5 hover:bg-zinc-800 text-zinc-400 hover:text-rose-400 transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+
+          {/* Close Panel Button */}
+          <button
+            onClick={toggleRightSidebar}
+            title="Close Assistant Panel"
+            className="rounded p-1.5 hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
+
+      {/* Chat History Overlay */}
+      {historyOpen && <ChatHistory />}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-3 space-y-4">

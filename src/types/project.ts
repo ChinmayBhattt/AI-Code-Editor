@@ -9,6 +9,14 @@ export interface ChatMessage {
   createdAt: Date;
 }
 
+export interface ChatSession {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  messages: ChatMessage[];
+}
+
 export interface ProjectFile {
   id: string;
   projectId: string;
