@@ -3,10 +3,10 @@
 import { useSettingsStore } from "@/stores/settings-store";
 import { useEditorStore } from "@/stores/editor-store";
 import { useProjectStore } from "@/stores/project-store";
-import { Cpu, Terminal, CheckCircle2, GitBranch } from "lucide-react";
+import { Cpu, Terminal, CheckCircle2, GitBranch, Sparkles } from "lucide-react";
 
 export function StatusBar() {
-  const { aiConfig, toggleBottomPanel } = useSettingsStore();
+  const { aiConfig, toggleBottomPanel, toggleRightSidebar, rightSidebarOpen } = useSettingsStore();
   const { tabs, activeTabId } = useEditorStore();
   const { files, projectName } = useProjectStore();
 
@@ -37,6 +37,16 @@ export function StatusBar() {
           className="flex items-center gap-1 hover:text-zinc-200 transition-colors"
         >
           <Terminal className="h-3 w-3 text-emerald-400" /> Terminal
+        </button>
+
+        <button
+          onClick={toggleRightSidebar}
+          className={`flex items-center gap-1 transition-colors font-medium ${
+            rightSidebarOpen ? "text-indigo-400 hover:text-indigo-300" : "text-zinc-400 hover:text-indigo-400"
+          }`}
+          title={rightSidebarOpen ? "Collapse AI Assistant" : "Open AI Assistant"}
+        >
+          <Sparkles className="h-3 w-3 text-indigo-400" /> AI Assistant
         </button>
 
         <span className="flex items-center gap-1 text-indigo-400 font-mono">

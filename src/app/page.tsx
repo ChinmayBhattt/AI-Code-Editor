@@ -19,7 +19,7 @@ import { SettingsDialog } from "@/components/settings/settings-dialog";
 import { GripVertical, GripHorizontal } from "lucide-react";
 
 export default function IDEMainPage() {
-  const { leftSidebarOpen, leftSidebarPanel, rightSidebarOpen, liveServerOpen, bottomPanelOpen } =
+  const { leftSidebarOpen, leftSidebarPanel, rightSidebarOpen, toggleRightSidebar, liveServerOpen, bottomPanelOpen } =
     useSettingsStore();
   const { activeTabId, tabs } = useEditorStore();
 
@@ -33,7 +33,7 @@ export default function IDEMainPage() {
     try {
       localStorage.removeItem("ai-code-studio-layout");
       localStorage.removeItem("react-resizable-panels:ai-code-studio-layout");
-    } catch {}
+    } catch { }
   }, []);
 
   // Drag Left Handle
@@ -130,6 +130,7 @@ export default function IDEMainPage() {
 
         {/* ── 2. Center Area (Editor + Live Server + Bottom Panel) ── */}
         <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#1e1e1e]">
+
           {/* Top Half: Editor + Live Server */}
           <div className="flex-1 flex overflow-hidden relative">
             {/* Monaco Editor */}
@@ -189,7 +190,7 @@ export default function IDEMainPage() {
           </div>
         )}
 
-        {/* ── 3. Right AI Assistant Sidebar (Resizable) ── */}
+        {/* ── 3. Right AI Assistant Sidebar ── */}
         {rightSidebarOpen && (
           <div
             style={{ width: `${rightWidth}px` }}

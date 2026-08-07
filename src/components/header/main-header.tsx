@@ -32,6 +32,7 @@ export function MainHeader() {
   const {
     toggleLeftSidebar,
     toggleRightSidebar,
+    rightSidebarOpen,
     toggleBottomPanel,
     toggleLiveServer,
     setSettingsDialogOpen,
@@ -407,9 +408,24 @@ export function MainHeader() {
         </DropdownMenu>
       </div>
 
-      {/* Project name display */}
-      <div className="text-[11px] text-zinc-500 font-medium">
-        {projectName || "AI Code Studio"} — Workspace
+      {/* Right side: Project name & AI Assistant Toggle Button */}
+      <div className="flex items-center gap-3">
+        <div className="text-[11px] text-zinc-500 font-medium hidden sm:block">
+          {projectName || "AI Code Studio"} — Workspace
+        </div>
+
+        <button
+          onClick={toggleRightSidebar}
+          title={rightSidebarOpen ? "Collapse AI Assistant" : "Open AI Assistant"}
+          className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium transition-all ${
+            rightSidebarOpen
+              ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/40"
+              : "bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700/60"
+          }`}
+        >
+          <Sparkles className={`h-3 w-3 ${rightSidebarOpen ? "text-indigo-400" : "text-zinc-400"}`} />
+          <span>AI Assistant</span>
+        </button>
       </div>
     </div>
   );
