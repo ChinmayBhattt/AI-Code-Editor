@@ -1,0 +1,77 @@
+// AI Code Studio — Database Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String   @default("")
+  framework   String   @default("")
+  language    String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  files File[]
+  chats Chat[]
+
+  @@index([createdAt])
+}
+
+model File {
+  id        String   @id @default(cuid())
+  projectId String
+  path      String
+  name      String
+  content   String   @default("")
+  language  String   @default("plaintext")
+  isFolder  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, path])
+  @@index([projectId])
+}
+
+model Chat {
+  id        String   @id @default(cuid())
+  projectId String
+  title     String   @default("New Chat")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([projectId])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  chatId    String
+  role      String
+  content   String
+  metadata  String   @default("{}")
+  createdAt DateTime @default(now())
+
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([chatId])
+}
+
+model Settings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  encrypted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
