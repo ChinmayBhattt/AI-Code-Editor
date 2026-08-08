@@ -50,10 +50,30 @@ export async function POST(req: Request) {
       model = groq(modelId || "llama-3.3-70b-versatile");
     }
 
+    // Format messages for Vercel AI SDK (support multimodal images/screenshots)
+    const formattedMessages = (messages || []).map((m: any) => {
+      if (m.images && m.images.length > 0) {
+        return {
+          role: m.role,
+          content: [
+            { type: "text", text: m.content || "Analyze this screenshot design and convert it into code." },
+            ...m.images.map((img: string) => ({
+              type: "image",
+              image: img,
+            })),
+          ],
+        };
+      }
+      return {
+        role: m.role,
+        content: m.content,
+      };
+    });
+
     const result = streamText({
       model,
       system: systemPrompt,
-      messages,
+      messages: formattedMessages,
       temperature: 0.7,
     });
 

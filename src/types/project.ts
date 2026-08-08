@@ -5,6 +5,7 @@ export interface ChatMessage {
   chatId: string;
   role: "user" | "assistant" | "system";
   content: string;
+  images?: string[];
   metadata?: Record<string, unknown>;
   createdAt: Date;
 }

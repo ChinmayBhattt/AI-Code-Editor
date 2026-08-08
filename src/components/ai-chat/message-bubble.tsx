@@ -9,11 +9,12 @@ import { parseFileOperations } from "@/lib/ai/file-operations";
 interface MessageBubbleProps {
   role: "user" | "assistant" | "system";
   content: string;
+  images?: string[];
   isLastAssistantMessage?: boolean;
   onProceed?: () => void;
 }
 
-export function MessageBubble({ role, content, isLastAssistantMessage, onProceed }: MessageBubbleProps) {
+export function MessageBubble({ role, content, images, isLastAssistantMessage, onProceed }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false);
   const [showThinking, setShowThinking] = useState(false);
   const isUser = role === "user";
@@ -46,10 +47,29 @@ export function MessageBubble({ role, content, isLastAssistantMessage, onProceed
       <div
         className={`relative min-w-0 max-w-[88%] rounded-xl p-3.5 space-y-2 border overflow-hidden break-words ${
           isUser
-            ? "bg-blue-600/10 border-blue-500/20 text-zinc-100"
-            : "bg-zinc-900/80 border-zinc-800 text-zinc-200"
         }`}
       >
+        {/* Render attached images / screenshots */}
+        {images && images.length > 0 && (
+          <div className="flex gap-2 flex-wrap mb-2">
+            {images.map((imgUrl, i) => (
+              <a
+                key={i}
+                href={imgUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="block overflow-hidden rounded-lg border border-zinc-700/80 hover:border-blue-500 transition-colors shadow-md group"
+              >
+                <img
+                  src={imgUrl}
+                  alt={`Screenshot ${i + 1}`}
+                  className="max-h-48 max-w-xs object-cover group-hover:scale-105 transition-transform duration-200"
+                />
+              </a>
+            ))}
+          </div>
+        )}
+
         {/* Collapsible Thinking Header */}
         {!isUser && (
           <div className="border-b border-zinc-800/80 pb-2">

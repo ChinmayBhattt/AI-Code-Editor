@@ -136,12 +136,13 @@ export function ChatPanel() {
     removePendingChange(id);
   };
 
-  const handleSendMessage = async (userPrompt: string) => {
+  const handleSendMessage = async (userPrompt: string, images?: string[]) => {
     const userMessage = {
       id: crypto.randomUUID(),
       chatId: "default",
       role: "user" as const,
       content: userPrompt,
+      images,
       metadata: {},
       createdAt: new Date(),
     };
@@ -164,6 +165,7 @@ export function ChatPanel() {
           messages: [...messages, userMessage].map((m) => ({
             role: m.role,
             content: m.content,
+            images: m.images,
           })),
           provider: aiConfig.provider,
           modelId: aiConfig.modelId,
@@ -362,6 +364,7 @@ export function ChatPanel() {
             key={m.id}
             role={m.role}
             content={m.content}
+            images={m.images}
             isLastAssistantMessage={idx === messages.length - 1 && m.role === "assistant"}
             onProceed={handleProceedToBuild}
           />
