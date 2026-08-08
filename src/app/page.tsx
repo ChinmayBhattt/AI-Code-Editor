@@ -20,7 +20,9 @@ import { StatusBar } from "@/components/status-bar/status-bar";
 import { SettingsDialog } from "@/components/settings/settings-dialog";
 import { WorkflowCanvas } from "@/components/automation/workflow-canvas";
 import { AIBrowserPanel } from "@/components/browser/ai-browser-panel";
+import { Architecture3DView } from "@/components/architecture/architecture-3d-view";
 import { useBrowserAgentStore } from "@/stores/browser-agent-store";
+import { useArchitecture3DStore } from "@/stores/architecture-3d-store";
 import { GripVertical, GripHorizontal } from "lucide-react";
 
 export default function IDEMainPage() {
@@ -29,6 +31,7 @@ export default function IDEMainPage() {
   const { activeTabId, tabs } = useEditorStore();
   const { isCanvasActive } = useAutomationStore();
   const { isOpen: browserIsOpen, isFullScreen: isBrowserFullScreen } = useBrowserAgentStore();
+  const { isOpen: architecture3DIsOpen } = useArchitecture3DStore();
 
   const [leftWidth, setLeftWidth] = useState(250);
   const [rightWidth, setRightWidth] = useState(320);
@@ -145,6 +148,11 @@ export default function IDEMainPage() {
               /* ── Workflow Canvas (replaces editor) ── */
               <div className="flex-1 flex flex-col h-full overflow-hidden">
                 <WorkflowCanvas />
+              </div>
+            ) : architecture3DIsOpen ? (
+              /* ── Codebase 3D Architecture View (replaces editor) ── */
+              <div className="flex-1 flex flex-col h-full overflow-hidden">
+                <Architecture3DView />
               </div>
             ) : browserIsOpen && isBrowserFullScreen ? (
               /* ── Fullscreen AI Browser Agent (replaces editor) ── */
