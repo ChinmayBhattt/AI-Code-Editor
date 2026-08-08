@@ -40,6 +40,8 @@ export interface BugReport {
 interface BrowserAgentState {
   // Browser state
   url: string;
+  history: string[];
+  historyIndex: number;
   currentTitle: string;
   isOpen: boolean;
   isFullScreen: boolean;
@@ -60,6 +62,8 @@ interface BrowserAgentState {
 
   // Actions
   setUrl: (url: string) => void;
+  goBack: () => void;
+  goForward: () => void;
   setIsOpen: (isOpen: boolean) => void;
   toggleFullScreen: () => void;
   setActiveTab: (tab: "preview" | "agent_logs" | "report") => void;
@@ -79,6 +83,8 @@ export const useBrowserAgentStore = create<BrowserAgentState>()(
   persist(
     (set, get) => ({
       url: "http://localhost:3000",
+      history: ["http://localhost:3000"],
+      historyIndex: 0,
       currentTitle: "Local App Preview",
       isOpen: false,
       isFullScreen: true,
@@ -95,7 +101,44 @@ export const useBrowserAgentStore = create<BrowserAgentState>()(
       bugsFound: [],
       screenshots: [],
 
-      setUrl: (url) => set({ url }),
+      setUrl: (newUrl) => {
+        set((state) => {
+          if (state.url === newUrl) return state;
+          const updatedHistory = [...state.history.slice(0, state.historyIndex + 1), newUrl];
+          return {
+            url: newUrl,
+            history: updatedHistory,
+            historyIndex: updatedHistory.length - 1,
+          };
+        });
+      },
+
+      goBack: () => {
+        set((state) => {
+          if (state.historyIndex > 0) {
+            const prevIndex = state.historyIndex - 1;
+            return {
+              historyIndex: prevIndex,
+              url: state.history[prevIndex],
+            };
+          }
+          return state;
+        });
+      },
+
+      goForward: () => {
+        set((state) => {
+          if (state.historyIndex < state.history.length - 1) {
+            const nextIndex = state.historyIndex + 1;
+            return {
+              historyIndex: nextIndex,
+              url: state.history[nextIndex],
+            };
+          }
+          return state;
+        });
+      },
+
       setIsOpen: (isOpen) => set({ isOpen }),
       toggleFullScreen: () => set((state) => ({ isFullScreen: !state.isFullScreen })),
       setActiveTab: (tab) => set({ activeTab: tab }),

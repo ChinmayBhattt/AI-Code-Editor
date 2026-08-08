@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useBrowserAgentStore } from "@/stores/browser-agent-store";
 import {
   Globe,
@@ -29,6 +29,10 @@ export function AIBrowserPanel() {
   const {
     url,
     setUrl,
+    history,
+    historyIndex,
+    goBack,
+    goForward,
     isOpen,
     setIsOpen,
     isFullScreen,
@@ -47,6 +51,11 @@ export function AIBrowserPanel() {
   } = useBrowserAgentStore();
 
   const [inputUrl, setInputUrl] = useState(url);
+
+  // Keep address bar input in sync with store URL changes
+  useEffect(() => {
+    setInputUrl(url);
+  }, [url]);
   const [customPrompt, setCustomPrompt] = useState("");
 
   if (!isOpen) return null;
@@ -109,14 +118,26 @@ export function AIBrowserPanel() {
         <form onSubmit={handleNavigate} className="flex flex-1 max-w-md items-center gap-1 mx-3">
           <button
             type="button"
-            className="p-1 text-zinc-400 hover:text-white rounded hover:bg-zinc-800"
+            onClick={goBack}
+            disabled={historyIndex <= 0}
+            className={`p-1 rounded transition-colors ${
+              historyIndex <= 0
+                ? "text-zinc-600 cursor-not-allowed opacity-40"
+                : "text-zinc-300 hover:text-white hover:bg-zinc-800"
+            }`}
             title="Back"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
-            className="p-1 text-zinc-400 hover:text-white rounded hover:bg-zinc-800"
+            onClick={goForward}
+            disabled={historyIndex >= history.length - 1}
+            className={`p-1 rounded transition-colors ${
+              historyIndex >= history.length - 1
+                ? "text-zinc-600 cursor-not-allowed opacity-40"
+                : "text-zinc-300 hover:text-white hover:bg-zinc-800"
+            }`}
             title="Forward"
           >
             <ArrowRight className="h-3.5 w-3.5" />
@@ -276,7 +297,11 @@ export function AIBrowserPanel() {
 
             {/* Actual Webpage Iframe */}
             <iframe
-              src={url}
+              src={
+                url.includes("localhost") || url.includes("127.0.0.1")
+                  ? url
+                  : `/api/browser-proxy?url=${encodeURIComponent(url)}`
+              }
               title="AI Browser Preview"
               className="h-full w-full border-none bg-white"
             />
