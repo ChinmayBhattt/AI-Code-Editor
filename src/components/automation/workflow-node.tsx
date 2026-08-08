@@ -26,6 +26,9 @@ import {
   Save,
   Trash2,
   GripVertical,
+  Loader2,
+  Check,
+  AlertCircle,
 } from "lucide-react";
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -71,11 +74,13 @@ export function WorkflowNode({
   onStartConnect,
   onEndConnect,
 }: WorkflowNodeProps) {
-  const { selectNode, removeNode, moveNode } = useAutomationStore();
+  const { selectNode, removeNode, moveNode, nodeStatuses } = useAutomationStore();
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; nodeX: number; nodeY: number } | null>(null);
   const colors = NODE_TYPE_COLORS[node.type];
   const Icon = getIconForLabel(node.label);
+
+  const status = nodeStatuses[node.id] || "idle";
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest(".port-target")) return;
@@ -108,14 +113,19 @@ export function WorkflowNode({
     window.addEventListener("mouseup", onMouseUp);
   };
 
+  const getStatusRing = () => {
+    if (status === "running") return "ring-2 ring-amber-400 border-amber-400 shadow-amber-400/40 animate-pulse";
+    if (status === "success") return "ring-2 ring-emerald-500 border-emerald-500 shadow-emerald-500/40";
+    if (status === "error") return "ring-2 ring-rose-500 border-rose-500 shadow-rose-500/40";
+    return isSelected ? `ring-2 ring-amber-400/40 shadow-lg ${colors.glow}` : "shadow-md hover:shadow-lg";
+  };
+
   return (
     <div
       onMouseDown={handleMouseDown}
-      className={`absolute rounded-xl border-[1.5px] transition-shadow duration-150 select-none group ${colors.bg} ${colors.border} ${
-        isSelected
-          ? `ring-2 ring-amber-400/40 shadow-lg ${colors.glow}`
-          : "shadow-md hover:shadow-lg"
-      } ${isDragging ? "cursor-grabbing z-50" : "cursor-grab"}`}
+      className={`absolute rounded-xl border-[1.5px] transition-all duration-200 select-none group ${colors.bg} ${colors.border} ${getStatusRing()} ${
+        isDragging ? "cursor-grabbing z-50" : "cursor-grab"
+      }`}
       style={{
         left: `${node.x}px`,
         top: `${node.y}px`,
@@ -124,7 +134,7 @@ export function WorkflowNode({
       }}
     >
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-white/5">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-white/5 relative">
         <div className={`flex h-6 w-6 items-center justify-center rounded-lg bg-white/10 ${colors.icon}`}>
           <Icon className="h-3.5 w-3.5" />
         </div>
@@ -136,16 +146,39 @@ export function WorkflowNode({
             {node.type}
           </p>
         </div>
+
+        {/* Execution status indicator badge */}
+        {status === "running" && (
+          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono animate-pulse">
+            <Loader2 className="h-2.5 w-2.5 animate-spin" />
+            <span>RUN</span>
+          </div>
+        )}
+        {status === "success" && (
+          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] font-mono">
+            <Check className="h-2.5 w-2.5 text-emerald-400" />
+            <span>OK</span>
+          </div>
+        )}
+        {status === "error" && (
+          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[9px] font-mono">
+            <AlertCircle className="h-2.5 w-2.5 text-rose-400" />
+            <span>ERR</span>
+          </div>
+        )}
+
         {/* Delete on hover */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            removeNode(node.id);
-          }}
-          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-rose-500/20 text-zinc-600 hover:text-rose-400 transition-all"
-        >
-          <Trash2 className="h-3 w-3" />
-        </button>
+        {status === "idle" && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              removeNode(node.id);
+            }}
+            className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-rose-500/20 text-zinc-600 hover:text-rose-400 transition-all"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        )}
       </div>
 
       {/* Ports */}

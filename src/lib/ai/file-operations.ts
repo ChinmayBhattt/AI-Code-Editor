@@ -138,3 +138,26 @@ export function countOperations(operations: FileOperation[]): Record<string, num
   }
   return counts;
 }
+
+export function parseAutomationWorkflow(response: string): {
+  name?: string;
+  nodes: any[];
+  edges: any[];
+} | null {
+  const regex = /```(?:automation:workflow|json:automation|workflow)\n([\s\S]*?)```/i;
+  const match = regex.exec(response);
+  if (!match || !match[1]) return null;
+
+  try {
+    const data = JSON.parse(match[1].trim());
+    if (Array.isArray(data.nodes)) {
+      return {
+        name: data.name,
+        nodes: data.nodes,
+        edges: data.edges || [],
+      };
+    }
+  } catch {}
+
+  return null;
+}

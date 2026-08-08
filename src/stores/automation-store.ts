@@ -1,10 +1,11 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type {
+import {
   AutomationNode,
   AutomationEdge,
   AutomationWorkflow,
   NodeTemplate,
+  NODE_TEMPLATES,
 } from "@/types/automation";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -19,12 +20,47 @@ interface AutomationState {
   canvasZoom: number;
   connectingFrom: { nodeId: string; portId: string } | null;
 
+  // Execution state
+  isExecuting: boolean;
+  nodeStatuses: Record<string, "idle" | "running" | "success" | "error">;
+  nodeOutputs: Record<string, unknown>;
+
+  // Execution actions
+  setExecuting: (executing: boolean) => void;
+  setNodeStatus: (
+    nodeId: string,
+    status: "idle" | "running" | "success" | "error",
+    output?: unknown
+  ) => void;
+  resetExecutionState: () => void;
+
   // Workflow CRUD
   createWorkflow: (name?: string) => void;
   deleteWorkflow: (id: string) => void;
   renameWorkflow: (id: string, name: string) => void;
   loadWorkflow: (id: string) => void;
   closeCanvas: () => void;
+  applyGeneratedWorkflow: (data: {
+    name?: string;
+    nodes: Array<{
+      id?: string;
+      type: string;
+      label?: string;
+      x?: number;
+      y?: number;
+      config?: Record<string, unknown>;
+      inputs?: Array<{ id: string; label: string }>;
+      outputs?: Array<{ id: string; label: string }>;
+    }>;
+    edges: Array<{
+      sourceNodeId?: string;
+      sourcePortId?: string;
+      targetNodeId?: string;
+      targetPortId?: string;
+      sourceIndex?: number;
+      targetIndex?: number;
+    }>;
+  }) => void;
 
   // Node operations
   addNode: (template: NodeTemplate, x: number, y: number) => void;
@@ -75,6 +111,28 @@ export const useAutomationStore = create<AutomationState>()(
       canvasOffset: { x: 0, y: 0 },
       canvasZoom: 1,
       connectingFrom: null,
+
+      // Execution defaults
+      isExecuting: false,
+      nodeStatuses: {},
+      nodeOutputs: {},
+
+      setExecuting: (executing) => set({ isExecuting: executing }),
+
+      setNodeStatus: (nodeId, status, output) =>
+        set((state) => ({
+          nodeStatuses: { ...state.nodeStatuses, [nodeId]: status },
+          ...(output !== undefined
+            ? { nodeOutputs: { ...state.nodeOutputs, [nodeId]: output } }
+            : {}),
+        })),
+
+      resetExecutionState: () =>
+        set({
+          isExecuting: false,
+          nodeStatuses: {},
+          nodeOutputs: {},
+        }),
 
       // ── Workflow CRUD ──
 
@@ -145,6 +203,102 @@ export const useAutomationStore = create<AutomationState>()(
           isPaletteOpen: false,
           connectingFrom: null,
         });
+      },
+
+      applyGeneratedWorkflow: (data) => {
+        const state = get();
+        let currentWorkflow = state.workflows.find(
+          (w) => w.id === state.activeWorkflowId
+        );
+
+        if (!currentWorkflow) {
+          const newId = crypto.randomUUID();
+          currentWorkflow = {
+            id: newId,
+            name: data.name || "AI Generated Workflow",
+            description: "",
+            nodes: [],
+            edges: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          set({
+            workflows: [currentWorkflow, ...state.workflows],
+            activeWorkflowId: newId,
+            isCanvasActive: true,
+          });
+        }
+
+        // Convert raw nodes to full AutomationNode objects
+        const newNodes: AutomationNode[] = (data.nodes || []).map((n, idx) => {
+          const typeStr = (n.type || "trigger").toLowerCase();
+          const template =
+            NODE_TEMPLATES.find(
+              (t) =>
+                t.type === typeStr ||
+                t.label.toLowerCase() === (n.label || "").toLowerCase()
+            ) || NODE_TEMPLATES[0];
+
+          const nodeId =
+            n.id || `node-${idx + 1}-${crypto.randomUUID().slice(0, 4)}`;
+
+          return {
+            id: nodeId,
+            type: (template ? template.type : "trigger") as any,
+            label: n.label || template.label,
+            x: n.x ?? 120 + idx * 280,
+            y: n.y ?? 160,
+            width: 220,
+            height: 80,
+            config: { ...template.defaultConfig, ...(n.config || {}) },
+            inputs: n.inputs || template.inputs.map((p) => ({ ...p })),
+            outputs: n.outputs || template.outputs.map((p) => ({ ...p })),
+          };
+        });
+
+        // Convert raw edges
+        const newEdges: AutomationEdge[] = (data.edges || []).map((e, idx) => {
+          let sourceId = e.sourceNodeId;
+          let targetId = e.targetNodeId;
+
+          if (e.sourceIndex !== undefined && newNodes[e.sourceIndex]) {
+            sourceId = newNodes[e.sourceIndex].id;
+          }
+          if (e.targetIndex !== undefined && newNodes[e.targetIndex]) {
+            targetId = newNodes[e.targetIndex].id;
+          }
+
+          const sourceNode =
+            newNodes.find((n) => n.id === sourceId) || newNodes[0];
+          const targetNode =
+            newNodes.find((n) => n.id === targetId) || newNodes[1];
+
+          if (!sourceNode || !targetNode) {
+            return null;
+          }
+
+          const sourcePortId =
+            e.sourcePortId || sourceNode.outputs[0]?.id || "out";
+          const targetPortId =
+            e.targetPortId || targetNode.inputs[0]?.id || "in";
+
+          return {
+            id: `edge-${idx + 1}-${crypto.randomUUID().slice(0, 4)}`,
+            sourceNodeId: sourceNode.id,
+            sourcePortId,
+            targetNodeId: targetNode.id,
+            targetPortId,
+          };
+        }).filter(Boolean) as AutomationEdge[];
+
+        set((s) =>
+          updateActiveWorkflow(s, (w) => ({
+            ...w,
+            name: data.name || w.name,
+            nodes: newNodes,
+            edges: newEdges,
+          }))
+        );
       },
 
       // ── Node Operations ──

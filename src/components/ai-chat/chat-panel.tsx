@@ -4,9 +4,10 @@ import { useChatStore } from "@/stores/chat-store";
 import { useProjectStore } from "@/stores/project-store";
 import { useEditorStore } from "@/stores/editor-store";
 import { useSettingsStore } from "@/stores/settings-store";
+import { useAutomationStore } from "@/stores/automation-store";
 import { MessageBubble } from "./message-bubble";
 import { ChatInput } from "./chat-input";
-import { parseFileOperations } from "@/lib/ai/file-operations";
+import { parseFileOperations, parseAutomationWorkflow } from "@/lib/ai/file-operations";
 import { getLanguageFromPath } from "@/lib/utils";
 import type { PendingChange } from "@/types/project";
 import { ChatHistory } from "./chat-history";
@@ -149,6 +150,13 @@ export function ChatPanel() {
 
     try {
       const activeTab = tabs.find((t) => t.id === activeTabId);
+      const { isCanvasActive, getActiveWorkflow, applyGeneratedWorkflow } =
+        useAutomationStore.getState();
+      const { leftSidebarPanel } = useSettingsStore.getState();
+      const isAutomationMode =
+        isCanvasActive || leftSidebarPanel === "automations";
+      const activeWorkflow = isAutomationMode ? getActiveWorkflow() : null;
+
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -160,6 +168,8 @@ export function ChatPanel() {
           provider: aiConfig.provider,
           modelId: aiConfig.modelId,
           mode: aiConfig.mode,
+          isAutomationMode,
+          activeWorkflow,
           apiKeys,
           files: files.map((f) => ({
             path: f.path,
@@ -191,7 +201,7 @@ export function ChatPanel() {
       }
 
       if (!fullContent.trim()) {
-        fullContent = "Updated project files based on your prompt.";
+        fullContent = "Updated workflow / files based on your prompt.";
       }
 
       const assistantMessage = {
@@ -205,42 +215,61 @@ export function ChatPanel() {
       addMessage(assistantMessage);
       setStreamingContent("");
 
-      // Parse file operations into Pending Changes
-      const ops = parseFileOperations(fullContent);
-
-      const newPending: PendingChange[] = [];
-      for (const op of ops) {
-        if ((op.type === "create" || op.type === "edit") && op.content) {
-          const existing = files.find((f) => f.path === op.path);
-          const originalContent = existing?.content || "";
-          const newContent = op.content;
-
-          newPending.push({
-            id: crypto.randomUUID(),
-            path: op.path,
-            type: (op.type as string) === "delete" ? "delete" : existing ? "edit" : "create",
-            content: newContent,
-            originalContent,
-            additions: newContent.split("\n").length,
-            deletions: originalContent ? originalContent.split("\n").length : 0,
-          });
-
-          // Open tab so inline diff highlights show up in Monaco Editor
-          openTab({
-            id: op.path,
-            fileId: op.path,
-            path: op.path,
-            name: op.path.split("/").pop() || op.path,
-            language: getLanguageFromPath(op.path),
-            content: newContent,
-          });
-
-          addLog(`AI Proposed Edit: ${op.path}`, "info");
-        }
+      // ── 1. Check for Automation Workflow parsing ──
+      const automationData = parseAutomationWorkflow(fullContent);
+      if (automationData) {
+        applyGeneratedWorkflow(automationData);
+        addLog(
+          `AI generated workflow with ${automationData.nodes.length} nodes on canvas`,
+          "success"
+        );
       }
 
-      if (newPending.length > 0) {
-        setPendingChanges(newPending);
+      // ── 2. Check for File Operations parsing ──
+      // If in automation mode, only create files if explicitly marked create: or edit:
+      const ops = parseFileOperations(fullContent);
+      const isExplicitFileOp = /```(create|edit|delete):/i.test(fullContent);
+
+      if (!isAutomationMode || isExplicitFileOp) {
+        const newPending: PendingChange[] = [];
+        for (const op of ops) {
+          if ((op.type === "create" || op.type === "edit") && op.content) {
+            const existing = files.find((f) => f.path === op.path);
+            const originalContent = existing?.content || "";
+            const newContent = op.content;
+
+            newPending.push({
+              id: crypto.randomUUID(),
+              path: op.path,
+              type:
+                (op.type as string) === "delete"
+                  ? "delete"
+                  : existing
+                  ? "edit"
+                  : "create",
+              content: newContent,
+              originalContent,
+              additions: newContent.split("\n").length,
+              deletions: originalContent ? originalContent.split("\n").length : 0,
+            });
+
+            // Open tab so inline diff highlights show up in Monaco Editor
+            openTab({
+              id: op.path,
+              fileId: op.path,
+              path: op.path,
+              name: op.path.split("/").pop() || op.path,
+              language: getLanguageFromPath(op.path),
+              content: newContent,
+            });
+
+            addLog(`AI Proposed Edit: ${op.path}`, "info");
+          }
+        }
+
+        if (newPending.length > 0) {
+          setPendingChanges(newPending);
+        }
       }
     } catch (err: unknown) {
       const error = err as Error;

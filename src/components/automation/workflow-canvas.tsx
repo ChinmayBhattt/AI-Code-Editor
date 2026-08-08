@@ -2,6 +2,8 @@
 
 import { useRef, useState, useCallback, useEffect } from "react";
 import { useAutomationStore } from "@/stores/automation-store";
+import { useSettingsStore } from "@/stores/settings-store";
+import { executeWorkflow } from "@/lib/automation/executor";
 import { WorkflowNode } from "./workflow-node";
 import { WorkflowEdge, getPortPosition, makeBezierPath } from "./workflow-edge";
 import { NodePalette } from "./node-palette";
@@ -15,6 +17,7 @@ import {
   Save,
   Zap,
   Play,
+  Loader2,
   MoreHorizontal,
 } from "lucide-react";
 
@@ -199,6 +202,37 @@ export function WorkflowCanvas() {
     ? workflow.nodes.find((n) => n.id === connectingFrom.nodeId)
     : null;
 
+  const {
+    isExecuting,
+    setExecuting,
+    setNodeStatus,
+    resetExecutionState,
+  } = useAutomationStore();
+  const { addConsoleOutput, setBottomPanelTab, apiKeys } = useSettingsStore();
+
+  const handleRunWorkflow = async () => {
+    if (!workflow || isExecuting) return;
+
+    resetExecutionState();
+    setExecuting(true);
+    setBottomPanelTab("console");
+
+    try {
+      await executeWorkflow(
+        workflow,
+        {
+          onLog: (msg, type) => addConsoleOutput(msg, type),
+          onNodeStatus: (nodeId, status) => setNodeStatus(nodeId, status),
+        },
+        apiKeys
+      );
+    } catch (err: any) {
+      addConsoleOutput(`❌ Workflow Execution Failed: ${err.message}`, "error");
+    } finally {
+      setExecuting(false);
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#0a0a0c] relative">
       {/* ── Canvas Toolbar ── */}
@@ -260,15 +294,29 @@ export function WorkflowCanvas() {
             </button>
           </div>
 
-          {/* Run (placeholder) */}
+          {/* Run Workflow Button */}
           <div className="flex items-center gap-0.5 ml-2 border-l border-zinc-800 pl-2">
             <button
-              className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 opacity-50 cursor-not-allowed"
-              disabled
-              title="Run (coming soon)"
+              onClick={handleRunWorkflow}
+              disabled={isExecuting || workflow.nodes.length === 0}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded text-[10px] font-bold shadow-md transition-all ${
+                isExecuting
+                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 cursor-wait"
+                  : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20 border border-emerald-500/50"
+              }`}
+              title="Run & Test Workflow Execution"
             >
-              <Play className="h-3 w-3" />
-              Run
+              {isExecuting ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin text-amber-400" />
+                  Running...
+                </>
+              ) : (
+                <>
+                  <Play className="h-3 w-3 fill-current" />
+                  Run Workflow
+                </>
+              )}
             </button>
           </div>
 

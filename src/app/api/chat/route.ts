@@ -5,11 +5,26 @@ import { buildSystemPrompt, buildProjectContext } from "@/lib/ai/system-prompt";
 
 export async function POST(req: Request) {
   try {
-    const { messages, provider, modelId, mode, apiKeys, files, activeFilePath, projectName } =
-      await req.json();
+    const {
+      messages,
+      provider,
+      modelId,
+      mode,
+      isAutomationMode,
+      activeWorkflow,
+      apiKeys,
+      files,
+      activeFilePath,
+      projectName,
+    } = await req.json();
 
     const projectContext = buildProjectContext(files || [], activeFilePath, projectName);
-    const systemPrompt = buildSystemPrompt(projectContext, mode || "plan");
+    const systemPrompt = buildSystemPrompt(
+      projectContext,
+      mode || "plan",
+      !!isAutomationMode,
+      activeWorkflow
+    );
 
     let model;
 

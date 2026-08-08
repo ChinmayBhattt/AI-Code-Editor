@@ -1,17 +1,62 @@
-// Initialize the application
-console.log('Application started');
+const express = require('express');
+const app = express();
+const port = 3000;
+const nodemailer = require('nodemailer');
+const cron = require('node-cron');
 
-// Import the sendEmail function from the emailService file
-const sendEmail = require('./emailService');
+// Middleware
+app.use(express.json());
 
-// Define a function to handle requests
-function handleRequest(req, res) {
-    // Send a response
-    res.send('Hello, World!');
+// Email configuration
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false, // or 'STARTTLS'
+  auth: {
+    user: 'your-email@gmail.com',
+    pass: 'your-password'
+  }
+});
 
-    // Send an automated email
-    sendEmail('recipient-email@example.com', 'Test Email', 'This is a test email sent from the application.');
-}
+// Route to send email
+app.post('/send-email', (req, res) => {
+  const { to, subject, text } = req.body;
+  const mailOptions = {
+    from: 'your-email@gmail.com',
+    to,
+    subject,
+    text
+  };
 
-// Export the function to be used elsewhere
-module.exports = handleRequest;
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      res.status(500).send({ message: 'Error sending email' });
+    } else {
+      res.send({ message: 'Email sent successfully' });
+    }
+  });
+});
+
+// Cron job to send daily summary
+cron.schedule('0 * * * *', () => {
+  const text = 'This is a daily summary';
+  const mailOptions = {
+    from: 'your-email@gmail.com',
+    to: 'user@example.com',
+    subject: 'Daily Summary',
+    text
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.log('Error sending email:', error);
+    } else {
+      console.log('Email sent successfully');
+    }
+  });
+});
+
+// Start server
+app.listen(port, () => {
+  console.log(`Server started on port ${port}`);
+});
