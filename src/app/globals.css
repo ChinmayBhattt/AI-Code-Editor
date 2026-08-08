@@ -53,3 +53,76 @@ body {
   background-color: #f43f5e !important;
   width: 5px !important;
 }
+
+/* ─── Automation Canvas Styles ─── */
+
+/* Config panel form fields */
+.field-input {
+  width: 100%;
+  border-radius: 0.375rem;
+  background-color: rgba(24, 24, 27, 0.8);
+  border: 1px solid rgba(63, 63, 70, 0.6);
+  padding: 0.375rem 0.5rem;
+  font-size: 0.7rem;
+  color: #e4e4e7;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.field-input:focus {
+  border-color: rgba(245, 158, 11, 0.5);
+}
+
+.field-input::placeholder {
+  color: #52525b;
+}
+
+.field-textarea {
+  resize: vertical;
+  min-height: 3rem;
+  font-size: 0.65rem;
+  line-height: 1.4;
+}
+
+/* Node port glow pulse */
+.port-circle:hover {
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+}
+
+/* Edge flow animation */
+@keyframes edgeFlowDots {
+  0% { stroke-dashoffset: 24; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.workflow-edge-group path:first-child {
+  pointer-events: stroke;
+}
+
+/* Canvas smooth transition for pan offset */
+.workflow-node-container {
+  pointer-events: auto;
+}
+
+/* Selection glow pulse */
+@keyframes nodeGlowPulse {
+  0%, 100% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.15); }
+  50% { box-shadow: 0 0 25px rgba(245, 158, 11, 0.3); }
+}
+
+/* Palette & config panel slide animation */
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* Config panel select styling */
+.field-input option {
+  background-color: #18181b;
+  color: #e4e4e7;
+}

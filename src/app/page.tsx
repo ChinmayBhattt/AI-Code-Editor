@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useEditorStore } from "@/stores/editor-store";
+import { useAutomationStore } from "@/stores/automation-store";
 import { MainHeader } from "@/components/header/main-header";
 import { SidebarNav } from "@/components/sidebar/sidebar";
 import { FileExplorer } from "@/components/sidebar/file-explorer";
 import { SearchPanel } from "@/components/sidebar/search-panel";
 import { ProjectPanel } from "@/components/sidebar/project-panel";
+import { AutomationsPanel } from "@/components/sidebar/automations-panel";
 import { EditorTabs } from "@/components/editor/editor-tabs";
 import { CodeEditor } from "@/components/editor/code-editor";
 import { WelcomeScreen } from "@/components/editor/welcome-screen";
@@ -16,12 +18,14 @@ import { ChatPanel } from "@/components/ai-chat/chat-panel";
 import { BottomPanel } from "@/components/panel/bottom-panel";
 import { StatusBar } from "@/components/status-bar/status-bar";
 import { SettingsDialog } from "@/components/settings/settings-dialog";
+import { WorkflowCanvas } from "@/components/automation/workflow-canvas";
 import { GripVertical, GripHorizontal } from "lucide-react";
 
 export default function IDEMainPage() {
   const { leftSidebarOpen, leftSidebarPanel, rightSidebarOpen, toggleRightSidebar, liveServerOpen, bottomPanelOpen } =
     useSettingsStore();
   const { activeTabId, tabs } = useEditorStore();
+  const { isCanvasActive } = useAutomationStore();
 
   const [leftWidth, setLeftWidth] = useState(250);
   const [rightWidth, setRightWidth] = useState(320);
@@ -115,6 +119,7 @@ export default function IDEMainPage() {
             {leftSidebarPanel === "explorer" && <FileExplorer />}
             {leftSidebarPanel === "search" && <SearchPanel />}
             {leftSidebarPanel === "projects" && <ProjectPanel />}
+            {leftSidebarPanel === "automations" && <AutomationsPanel />}
           </div>
         )}
 
@@ -131,31 +136,40 @@ export default function IDEMainPage() {
         {/* ── 2. Center Area (Editor + Live Server + Bottom Panel) ── */}
         <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#1e1e1e]">
 
-          {/* Top Half: Editor + Live Server */}
+          {/* Top Half: Canvas OR Editor + Live Server */}
           <div className="flex-1 flex overflow-hidden relative">
-            {/* Monaco Editor */}
-            <div className="flex-1 flex flex-col h-full overflow-hidden">
-              <EditorTabs />
-              <div className="flex-1 overflow-hidden relative">
-                {activeTab ? (
-                  <CodeEditor
-                    key={activeTab.id}
-                    fileId={activeTab.fileId}
-                    path={activeTab.path}
-                    content={activeTab.content}
-                    language={activeTab.language}
-                  />
-                ) : (
-                  <WelcomeScreen />
-                )}
+            {isCanvasActive ? (
+              /* ── Workflow Canvas (replaces editor) ── */
+              <div className="flex-1 flex flex-col h-full overflow-hidden">
+                <WorkflowCanvas />
               </div>
-            </div>
+            ) : (
+              <>
+                {/* Monaco Editor */}
+                <div className="flex-1 flex flex-col h-full overflow-hidden">
+                  <EditorTabs />
+                  <div className="flex-1 overflow-hidden relative">
+                    {activeTab ? (
+                      <CodeEditor
+                        key={activeTab.id}
+                        fileId={activeTab.fileId}
+                        path={activeTab.path}
+                        content={activeTab.content}
+                        language={activeTab.language}
+                      />
+                    ) : (
+                      <WelcomeScreen />
+                    )}
+                  </div>
+                </div>
 
-            {/* Live Web Server Preview */}
-            {liveServerOpen && (
-              <div className="w-1/2 h-full border-l border-zinc-800/80 flex flex-col shrink-0">
-                <LiveServerPreview />
-              </div>
+                {/* Live Web Server Preview */}
+                {liveServerOpen && (
+                  <div className="w-1/2 h-full border-l border-zinc-800/80 flex flex-col shrink-0">
+                    <LiveServerPreview />
+                  </div>
+                )}
+              </>
             )}
           </div>
 

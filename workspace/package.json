@@ -1,0 +1,10 @@
+{
+    "name": "chec",
+    "version": "1.0.0",
+    "scripts": {
+        "start": "node app.js"
+    },
+    "dependencies": {
+        "nodemailer": "^6.7.2"
+    }
+}

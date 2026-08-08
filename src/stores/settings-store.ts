@@ -5,7 +5,7 @@ import { DEFAULT_AI_CONFIG, DEFAULT_APP_SETTINGS } from "@/types/settings";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type SidebarPanel = "explorer" | "search" | "projects" | "settings";
+type SidebarPanel = "explorer" | "search" | "projects" | "settings" | "automations";
 type BottomPanelTab = "console" | "terminal" | "logs" | "errors";
 
 interface SettingsState {

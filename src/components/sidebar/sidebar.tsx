@@ -1,7 +1,7 @@
 "use client";
 
 import { useSettingsStore } from "@/stores/settings-store";
-import { FolderTree, FolderGit2, Search, Settings } from "lucide-react";
+import { FolderTree, FolderGit2, Search, Settings, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function SidebarNav() {
@@ -11,6 +11,7 @@ export function SidebarNav() {
     { id: "explorer", label: "File Explorer", icon: FolderTree },
     { id: "search", label: "Search Code", icon: Search },
     { id: "projects", label: "Projects", icon: FolderGit2 },
+    { id: "automations", label: "Automations", icon: Zap },
   ] as const;
 
   return (
