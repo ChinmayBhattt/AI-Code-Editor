@@ -14,11 +14,9 @@ import {
   ZoomOut,
   Maximize2,
   Plus,
-  Save,
   Zap,
   Play,
   Loader2,
-  MoreHorizontal,
 } from "lucide-react";
 
 export function WorkflowCanvas() {
@@ -67,17 +65,28 @@ export function WorkflowCanvas() {
   useEffect(() => {
     if (!isPanning) return;
 
+    let rafId: number | null = null;
+
     const onMouseMove = (e: MouseEvent) => {
       if (!panRef.current) return;
       const dx = e.clientX - panRef.current.startX;
       const dy = e.clientY - panRef.current.startY;
-      setCanvasOffset({
-        x: panRef.current.offsetX + dx,
-        y: panRef.current.offsetY + dy,
+      const newX = panRef.current.offsetX + dx;
+      const newY = panRef.current.offsetY + dy;
+
+      if (rafId !== null) return;
+
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        setCanvasOffset({ x: newX, y: newY });
       });
     };
 
     const onMouseUp = () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
       setIsPanning(false);
       panRef.current = null;
     };
@@ -85,6 +94,7 @@ export function WorkflowCanvas() {
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
     return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
     };
@@ -174,9 +184,13 @@ export function WorkflowCanvas() {
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      const activeTag = (e.target as HTMLElement)?.tagName;
+      if (activeTag === "INPUT" || activeTag === "TEXTAREA") return;
+
       if (e.key === "Delete" || e.key === "Backspace") {
         if (selectedEdgeId) {
-          handleDeleteSelectedEdge();
+          removeEdge(selectedEdgeId);
+          setSelectedEdgeId(null);
         }
       }
       if (e.key === "Escape") {
@@ -187,7 +201,7 @@ export function WorkflowCanvas() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  });
+  }, [selectedEdgeId, removeEdge, setConnectingFrom, selectNode]);
 
   if (!workflow) {
     return (

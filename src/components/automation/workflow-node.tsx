@@ -87,24 +87,38 @@ export function WorkflowNode({
     e.stopPropagation();
     selectNode(node.id);
 
-    dragRef.current = {
-      startX: e.clientX / zoom,
-      startY: e.clientY / zoom,
-      nodeX: node.x,
-      nodeY: node.y,
-    };
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const initialX = node.x;
+    const initialY = node.y;
+    let currentX = initialX;
+    let currentY = initialY;
+
     setIsDragging(true);
 
+    let rafId: number | null = null;
+
     const onMouseMove = (moveEvent: MouseEvent) => {
-      if (!dragRef.current) return;
-      const dx = moveEvent.clientX / zoom - dragRef.current.startX;
-      const dy = moveEvent.clientY / zoom - dragRef.current.startY;
-      moveNode(node.id, dragRef.current.nodeX + dx, dragRef.current.nodeY + dy);
+      const dx = (moveEvent.clientX - startX) / zoom;
+      const dy = (moveEvent.clientY - startY) / zoom;
+      currentX = Math.round(initialX + dx);
+      currentY = Math.round(initialY + dy);
+
+      if (rafId !== null) return;
+
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        moveNode(node.id, currentX, currentY);
+      });
     };
 
     const onMouseUp = () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
       setIsDragging(false);
-      dragRef.current = null;
+      moveNode(node.id, currentX, currentY);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
     };
@@ -123,8 +137,10 @@ export function WorkflowNode({
   return (
     <div
       onMouseDown={handleMouseDown}
-      className={`absolute rounded-xl border-[1.5px] transition-all duration-200 select-none group ${colors.bg} ${colors.border} ${getStatusRing()} ${
-        isDragging ? "cursor-grabbing z-50" : "cursor-grab"
+      className={`absolute rounded-xl border-[1.5px] select-none group ${colors.bg} ${colors.border} ${getStatusRing()} ${
+        isDragging
+          ? "transition-none shadow-2xl z-50 cursor-grabbing"
+          : "transition-shadow duration-150 cursor-grab"
       }`}
       style={{
         left: `${node.x}px`,

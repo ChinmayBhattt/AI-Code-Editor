@@ -232,12 +232,13 @@ export const useAutomationStore = create<AutomationState>()(
         // Convert raw nodes to full AutomationNode objects
         const newNodes: AutomationNode[] = (data.nodes || []).map((n, idx) => {
           const typeStr = (n.type || "trigger").toLowerCase();
+          // Match by label first, then by type
           const template =
             NODE_TEMPLATES.find(
-              (t) =>
-                t.type === typeStr ||
-                t.label.toLowerCase() === (n.label || "").toLowerCase()
-            ) || NODE_TEMPLATES[0];
+              (t) => t.label.toLowerCase() === (n.label || "").toLowerCase()
+            ) ||
+            NODE_TEMPLATES.find((t) => t.type === typeStr) ||
+            NODE_TEMPLATES[0];
 
           const nodeId =
             n.id || `node-${idx + 1}-${crypto.randomUUID().slice(0, 4)}`;
@@ -257,39 +258,57 @@ export const useAutomationStore = create<AutomationState>()(
         });
 
         // Convert raw edges
-        const newEdges: AutomationEdge[] = (data.edges || []).map((e, idx) => {
-          let sourceId = e.sourceNodeId;
-          let targetId = e.targetNodeId;
+        let newEdges: AutomationEdge[] = [];
+        if (data.edges && data.edges.length > 0) {
+          newEdges = data.edges
+            .map((e, idx) => {
+              let sourceId = e.sourceNodeId;
+              let targetId = e.targetNodeId;
 
-          if (e.sourceIndex !== undefined && newNodes[e.sourceIndex]) {
-            sourceId = newNodes[e.sourceIndex].id;
+              if (e.sourceIndex !== undefined && newNodes[e.sourceIndex]) {
+                sourceId = newNodes[e.sourceIndex].id;
+              }
+              if (e.targetIndex !== undefined && newNodes[e.targetIndex]) {
+                targetId = newNodes[e.targetIndex].id;
+              }
+
+              const sourceNode = newNodes.find((n) => n.id === sourceId);
+              const targetNode = newNodes.find((n) => n.id === targetId);
+
+              if (!sourceNode || !targetNode || sourceNode.id === targetNode.id) {
+                return null;
+              }
+
+              const sourcePortId =
+                e.sourcePortId || sourceNode.outputs[0]?.id || "out";
+              const targetPortId =
+                e.targetPortId || targetNode.inputs[0]?.id || "in";
+
+              return {
+                id: `edge-${idx + 1}-${crypto.randomUUID().slice(0, 4)}`,
+                sourceNodeId: sourceNode.id,
+                sourcePortId,
+                targetNodeId: targetNode.id,
+                targetPortId,
+              };
+            })
+            .filter(Boolean) as AutomationEdge[];
+        } else if (newNodes.length > 1) {
+          // Auto-connect nodes sequentially if edges omitted
+          for (let i = 0; i < newNodes.length - 1; i++) {
+            const src = newNodes[i];
+            const tgt = newNodes[i + 1];
+            if (src.outputs.length > 0 && tgt.inputs.length > 0) {
+              newEdges.push({
+                id: `edge-${i + 1}-${crypto.randomUUID().slice(0, 4)}`,
+                sourceNodeId: src.id,
+                sourcePortId: src.outputs[0].id,
+                targetNodeId: tgt.id,
+                targetPortId: tgt.inputs[0].id,
+              });
+            }
           }
-          if (e.targetIndex !== undefined && newNodes[e.targetIndex]) {
-            targetId = newNodes[e.targetIndex].id;
-          }
-
-          const sourceNode =
-            newNodes.find((n) => n.id === sourceId) || newNodes[0];
-          const targetNode =
-            newNodes.find((n) => n.id === targetId) || newNodes[1];
-
-          if (!sourceNode || !targetNode) {
-            return null;
-          }
-
-          const sourcePortId =
-            e.sourcePortId || sourceNode.outputs[0]?.id || "out";
-          const targetPortId =
-            e.targetPortId || targetNode.inputs[0]?.id || "in";
-
-          return {
-            id: `edge-${idx + 1}-${crypto.randomUUID().slice(0, 4)}`,
-            sourceNodeId: sourceNode.id,
-            sourcePortId,
-            targetNodeId: targetNode.id,
-            targetPortId,
-          };
-        }).filter(Boolean) as AutomationEdge[];
+        }
 
         set((s) =>
           updateActiveWorkflow(s, (w) => ({

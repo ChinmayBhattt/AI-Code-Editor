@@ -17,15 +17,21 @@ function getPortPosition(
   portId: string,
   isOutput: boolean
 ): { x: number; y: number } {
-  const ports = isOutput ? node.outputs : node.inputs;
-  let portIndex = ports.findIndex((p) => p.id === portId);
+  if (!node) return { x: 0, y: 0 };
+  const nx = typeof node.x === "number" ? node.x : 0;
+  const ny = typeof node.y === "number" ? node.y : 0;
+  const nw = typeof node.width === "number" ? node.width : 220;
+  const nh = typeof node.height === "number" ? node.height : 80;
+
+  const ports = (isOutput ? node.outputs : node.inputs) || [];
+  let portIndex = ports.findIndex((p) => p?.id === portId);
   if (portIndex < 0) portIndex = 0;
   const portCount = Math.max(1, ports.length);
-  const spacing = node.height / (portCount + 1);
+  const spacing = nh / (portCount + 1);
 
   return {
-    x: isOutput ? node.x + node.width : node.x,
-    y: node.y + spacing * (portIndex + 1),
+    x: isOutput ? nx + nw : nx,
+    y: ny + spacing * (portIndex + 1),
   };
 }
 
@@ -35,8 +41,19 @@ function makeBezierPath(
   tx: number,
   ty: number
 ): string {
-  const dx = Math.abs(tx - sx);
-  const controlOffset = Math.max(80, dx * 0.5);
+  if (isNaN(sx) || isNaN(sy) || isNaN(tx) || isNaN(ty)) {
+    return "M 0 0";
+  }
+
+  const dx = tx - sx;
+  const dy = ty - sy;
+
+  if (dx >= 40) {
+    const controlOffset = Math.max(50, dx * 0.4);
+    return `M ${sx} ${sy} C ${sx + controlOffset} ${sy}, ${tx - controlOffset} ${ty}, ${tx} ${ty}`;
+  }
+
+  const controlOffset = Math.max(60, Math.abs(dy) * 0.4);
   return `M ${sx} ${sy} C ${sx + controlOffset} ${sy}, ${tx - controlOffset} ${ty}, ${tx} ${ty}`;
 }
 
