@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { useArchitecture3DStore, ArchitectureNode3D } from "@/stores/architecture-3d-store";
-import { generateDefaultArchitecture, getSingleRootArchitecture } from "@/lib/architecture/codebase-analyzer";
+import { generateDefaultArchitecture } from "@/lib/architecture/codebase-analyzer";
 import { useEditorStore } from "@/stores/editor-store";
 import {
   Box,
@@ -24,22 +24,21 @@ import {
   X,
 } from "lucide-react";
 
-// Helper to create 3D Canvas Text Sprite Badges
-function createTextSprite(text: string, subtext: string, colorStr: string, status: string): THREE.Sprite {
+// Helper to create 3D Canvas Text Sprite Cards (Cards Floating in 3D Space)
+function createCardTexture(text: string, subtext: string, colorStr: string, status: string, isSelected: boolean) {
   const canvas = document.createElement("canvas");
   canvas.width = 512;
-  canvas.height = 256;
+  canvas.height = 280;
   const ctx = canvas.getContext("2d")!;
 
   // Background Glass Card
-  ctx.fillStyle = "rgba(10, 10, 15, 0.85)";
-  ctx.strokeStyle = colorStr;
-  ctx.lineWidth = 6;
-  
-  // Rounded Rect
+  ctx.fillStyle = isSelected ? "rgba(18, 18, 28, 0.95)" : "rgba(10, 10, 18, 0.88)";
+  ctx.strokeStyle = isSelected ? "#ffffff" : colorStr;
+  ctx.lineWidth = isSelected ? 8 : 5;
+
   const r = 24;
   const w = 500;
-  const h = 240;
+  const h = 264;
   const x = 6;
   const y = 6;
 
@@ -57,38 +56,39 @@ function createTextSprite(text: string, subtext: string, colorStr: string, statu
   const dotColor = status === "warning" ? "#f59e0b" : status === "error" ? "#ef4444" : "#10b981";
   ctx.fillStyle = dotColor;
   ctx.beginPath();
-  ctx.arc(40, 50, 14, 0, Math.PI * 2);
+  ctx.arc(42, 54, 14, 0, Math.PI * 2);
   ctx.fill();
 
   // Header Title Text
-  ctx.font = "bold 34px sans-serif";
+  ctx.font = "bold 32px sans-serif";
   ctx.fillStyle = "#ffffff";
-  ctx.fillText(text, 70, 60);
+  ctx.fillText(text, 72, 64);
 
   // Divider Line
   ctx.strokeStyle = "rgba(255,255,255,0.15)";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(30, 95);
-  ctx.lineTo(475, 95);
+  ctx.moveTo(30, 105);
+  ctx.lineTo(475, 105);
   ctx.stroke();
 
   // Subtext Info
   ctx.font = "bold 24px monospace";
   ctx.fillStyle = colorStr;
-  ctx.fillText(subtext.toUpperCase(), 35, 145);
+  ctx.fillText(subtext.toUpperCase(), 35, 155);
 
   // Status Text
-  ctx.font = "22px sans-serif";
+  ctx.font = "bold 20px sans-serif";
   ctx.fillStyle = "#9ca3af";
-  ctx.fillText(`STATUS: ${status.toUpperCase()}`, 35, 195);
+  ctx.fillText(`STATUS: ${status.toUpperCase()}`, 35, 205);
+
+  ctx.font = "18px monospace";
+  ctx.fillStyle = "#60a5fa";
+  ctx.fillText(`[CLICK TO INSPECT FILE]`, 35, 242);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.minFilter = THREE.LinearFilter;
-  const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
-  const sprite = new THREE.Sprite(spriteMat);
-  sprite.scale.set(6, 3, 1);
-  return sprite;
+  return texture;
 }
 
 export function Architecture3DView() {
@@ -139,7 +139,7 @@ export function Architecture3DView() {
     }
   }, [nodes, setNodes, setConnections]);
 
-  // Setup High-Detail Cyberpunk 3D WebGL Scene
+  // Setup Floating 3D Cards WebGL Scene (NO BLOCKS)
   useEffect(() => {
     if (!mountRef.current) return;
     const container = mountRef.current;
@@ -149,11 +149,11 @@ export function Architecture3DView() {
     // Scene, Camera, Renderer
     const scene = new THREE.Scene();
     scene.background = new THREE.Color("#050508");
-    scene.fog = new THREE.FogExp2("#050508", 0.012);
+    scene.fog = new THREE.FogExp2("#050508", 0.01);
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
-    camera.position.set(0, 16, 26);
+    camera.position.set(0, 14, 24);
     cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
@@ -172,20 +172,13 @@ export function Architecture3DView() {
     controls.maxPolarAngle = Math.PI / 2.05;
     controlsRef.current = controls;
 
-    // Lighting Setup
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 2.0);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.8);
     dirLight.position.set(20, 35, 25);
-    dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = 2048;
-    dirLight.shadow.mapSize.height = 2048;
     scene.add(dirLight);
-
-    const blueRimLight = new THREE.DirectionalLight(0x3b82f6, 1.5);
-    blueRimLight.position.set(-20, 20, -20);
-    scene.add(blueRimLight);
 
     // High-Tech Cyber Floor Grid
     const gridHelper = new THREE.GridHelper(50, 50, 0x3b82f6, 0x1e1e2e);
@@ -195,17 +188,16 @@ export function Architecture3DView() {
     // Dark Floor Reflection Plane
     const floorGeo = new THREE.PlaneGeometry(80, 80);
     const floorMat = new THREE.MeshStandardMaterial({
-      color: 0x07070c,
+      color: 0x06060a,
       roughness: 0.1,
       metalness: 0.9,
     });
     const floorMesh = new THREE.Mesh(floorGeo, floorMat);
     floorMesh.rotation.x = -Math.PI / 2;
     floorMesh.position.y = -0.05;
-    floorMesh.receiveShadow = true;
     scene.add(floorMesh);
 
-    // Floating Cyber Particles
+    // Floating Cyber Dust Particles
     const particleCount = 350;
     const particlesGeo = new THREE.BufferGeometry();
     const particlePositions = new Float32Array(particleCount * 3);
@@ -222,149 +214,68 @@ export function Architecture3DView() {
     const particleSystem = new THREE.Points(particlesGeo, particleMat);
     scene.add(particleSystem);
 
-    // ── Build Realistic 3D Skyscraper Architecture Nodes ──
+    // ── Build Floating 3D Cards Only (NO BLOCKS) ──
     nodeMeshesRef.current.clear();
     const clickables: THREE.Object3D[] = [];
 
     nodes.forEach((node) => {
       const group = new THREE.Group();
-      group.position.set(node.position[0], 0, node.position[2]);
+      const cardY = 3.5;
+      group.position.set(node.position[0], cardY, node.position[2]);
       const nodeColor = new THREE.Color(node.color);
 
       const isSelected = selectedNodeId === node.id;
-      const isDatabase = node.type === "database";
-      const isAuth = node.type === "auth";
 
-      // 1. Metallic Base Foundation Ring
-      const baseGeo = new THREE.CylinderGeometry(node.size[0] * 0.75, node.size[0] * 0.85, 0.4, 16);
-      const baseMat = new THREE.MeshStandardMaterial({
-        color: 0x18181b,
-        metalness: 0.9,
-        roughness: 0.2,
-      });
-      const baseMesh = new THREE.Mesh(baseGeo, baseMat);
-      baseMesh.position.y = 0.2;
-      baseMesh.receiveShadow = true;
-      group.add(baseMesh);
-
-      // Base Neon Glowing Ring
-      const ringGeo = new THREE.TorusGeometry(node.size[0] * 0.76, 0.06, 16, 32);
+      // 1. Neon Ground Glow Ring on Cyber Floor
+      const ringGeo = new THREE.TorusGeometry(1.8, 0.08, 16, 32);
       const ringMat = new THREE.MeshBasicMaterial({ color: nodeColor });
       const ringMesh = new THREE.Mesh(ringGeo, ringMat);
       ringMesh.rotation.x = Math.PI / 2;
-      ringMesh.position.y = 0.42;
+      ringMesh.position.set(0, -cardY + 0.02, 0);
       group.add(ringMesh);
 
-      // 2. Main Building Body
-      let mainMesh: THREE.Mesh;
+      // Vertical Laser Line connecting ground ring up to floating card
+      const lineGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, -cardY, 0),
+        new THREE.Vector3(0, 0, 0),
+      ]);
+      const lineMat = new THREE.LineDashedMaterial({ color: nodeColor, dashSize: 0.2, gapSize: 0.1 });
+      const verticalLine = new THREE.Line(lineGeo, lineMat);
+      verticalLine.computeLineDistances();
+      group.add(verticalLine);
 
-      if (isDatabase) {
-        // Cylindrical Pod Tower for Database
-        const cylGeo = new THREE.CylinderGeometry(node.size[0] * 0.6, node.size[0] * 0.6, node.size[1], 24);
-        const cylMat = new THREE.MeshPhysicalMaterial({
-          color: nodeColor,
-          metalness: 0.8,
-          roughness: 0.2,
-          transmission: 0.4,
-          transparent: true,
-          opacity: 0.9,
-          emissive: nodeColor,
-          emissiveIntensity: isSelected ? 0.6 : 0.2,
-        });
-        mainMesh = new THREE.Mesh(cylGeo, cylMat);
-        mainMesh.position.y = node.size[1] / 2 + 0.4;
-
-        // Stacked Storage Ring Strips
-        for (let h = 1; h < node.size[1]; h += 1.2) {
-          const discGeo = new THREE.TorusGeometry(node.size[0] * 0.61, 0.05, 12, 24);
-          const discMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-          const discMesh = new THREE.Mesh(discGeo, discMat);
-          discMesh.rotation.x = Math.PI / 2;
-          discMesh.position.y = h - node.size[1] / 2;
-          mainMesh.add(discMesh);
-        }
-      } else if (isAuth) {
-        // Octagonal Security Fortress Body
-        const octGeo = new THREE.CylinderGeometry(node.size[0] * 0.65, node.size[0] * 0.7, node.size[1], 8);
-        const octMat = new THREE.MeshPhysicalMaterial({
-          color: nodeColor,
-          metalness: 0.9,
-          roughness: 0.1,
-          emissive: nodeColor,
-          emissiveIntensity: isSelected ? 0.7 : 0.3,
-        });
-        mainMesh = new THREE.Mesh(octGeo, octMat);
-        mainMesh.position.y = node.size[1] / 2 + 0.4;
-      } else {
-        // Multi-tier Glass Façade Skyscraper
-        const boxGeo = new THREE.BoxGeometry(node.size[0], node.size[1], node.size[2]);
-        const boxMat = new THREE.MeshPhysicalMaterial({
-          color: nodeColor,
-          metalness: 0.8,
-          roughness: 0.2,
-          transmission: 0.35,
-          transparent: true,
-          opacity: 0.92,
-          emissive: nodeColor,
-          emissiveIntensity: isSelected ? 0.6 : 0.2,
-        });
-        mainMesh = new THREE.Mesh(boxGeo, boxMat);
-        mainMesh.position.y = node.size[1] / 2 + 0.4;
-
-        // Illuminated Inner Core Mesh
-        const innerGeo = new THREE.BoxGeometry(node.size[0] * 0.7, node.size[1] * 0.9, node.size[2] * 0.7);
-        const innerMat = new THREE.MeshBasicMaterial({ color: nodeColor });
-        const innerMesh = new THREE.Mesh(innerGeo, innerMat);
-        mainMesh.add(innerMesh);
-
-        // Floor Slice Frame Wireframe
-        const edges = new THREE.EdgesGeometry(boxGeo);
-        const wireMat = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
-        const wireframe = new THREE.LineSegments(edges, wireMat);
-        mainMesh.add(wireframe);
-      }
-
-      mainMesh.castShadow = true;
-      mainMesh.receiveShadow = true;
-      mainMesh.userData = { id: node.id, filePath: node.filePath, name: node.name };
-      group.add(mainMesh);
-      clickables.push(mainMesh);
-
-      // 3. Rooftop Antenna & Beacon Signal Light
-      const roofY = node.size[1] + 0.4;
-      const antGeo = new THREE.CylinderGeometry(0.05, 0.08, 1.8, 8);
-      const antMat = new THREE.MeshStandardMaterial({ color: 0xd4d4d8, metalness: 0.9 });
-      const antMesh = new THREE.Mesh(antGeo, antMat);
-      antMesh.position.y = roofY + 0.9;
-      group.add(antMesh);
-
-      // Rooftop Beacon Sphere
-      const beaconGeo = new THREE.SphereGeometry(0.25, 16, 16);
-      const beaconMat = new THREE.MeshBasicMaterial({ color: node.status === "warning" ? 0xf59e0b : 0x10b981 });
-      const beaconMesh = new THREE.Mesh(beaconGeo, beaconMat);
-      beaconMesh.position.y = roofY + 1.8;
-      group.add(beaconMesh);
-
-      // Pointlight inside each building core
-      const pLight = new THREE.PointLight(nodeColor, 2.5, 12);
-      pLight.position.y = node.size[1] / 2;
-      group.add(pLight);
-
-      // 4. Floating 3D Text Title & Badge Sprite
-      const sprite = createTextSprite(
+      // 2. Floating 3D Glass Card Mesh (Raycast target)
+      const texture = createCardTexture(
         node.name,
         `${node.metrics?.filesCount || 8} FILES • ${node.type}`,
         node.color,
-        node.status
+        node.status,
+        isSelected
       );
-      sprite.position.y = roofY + 3.2;
-      group.add(sprite);
+
+      const cardGeo = new THREE.PlaneGeometry(6.5, 3.6);
+      const cardMat = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        side: THREE.DoubleSide,
+      });
+
+      const cardMesh = new THREE.Mesh(cardGeo, cardMat);
+      cardMesh.position.set(0, 0, 0);
+      cardMesh.userData = { id: node.id, filePath: node.filePath, name: node.name };
+      group.add(cardMesh);
+      clickables.push(cardMesh);
+
+      // Glowing Pointlight below card
+      const pLight = new THREE.PointLight(nodeColor, 2.5, 10);
+      pLight.position.set(0, -1, 0);
+      group.add(pLight);
 
       scene.add(group);
-      nodeMeshesRef.current.set(node.id, mainMesh);
+      nodeMeshesRef.current.set(node.id, cardMesh);
     });
 
-    // ── Build 3D Laser Beam Connection Tubes & Flow Particles ──
+    // ── Build 3D Laser Flow Connectors Between Floating Cards ──
     flowParticlesRef.current = [];
 
     connections.forEach((conn) => {
@@ -372,10 +283,10 @@ export function Architecture3DView() {
       const toNode = nodes.find((n) => n.id === conn.toId);
       if (!fromNode || !toNode) return;
 
-      const start = new THREE.Vector3(fromNode.position[0], fromNode.size[1] / 2 + 0.4, fromNode.position[2]);
-      const end = new THREE.Vector3(toNode.position[0], toNode.size[1] / 2 + 0.4, toNode.position[2]);
+      const start = new THREE.Vector3(fromNode.position[0], 3.5, fromNode.position[2]);
+      const end = new THREE.Vector3(toNode.position[0], 3.5, toNode.position[2]);
 
-      const midY = Math.max(start.y, end.y) + 3;
+      const midY = Math.max(start.y, end.y) + 2.5;
       const points = [
         start,
         new THREE.Vector3((start.x * 2 + end.x) / 3, midY, (start.z * 2 + end.z) / 3),
@@ -384,17 +295,17 @@ export function Architecture3DView() {
       ];
 
       const curve = new THREE.CatmullRomCurve3(points);
-      const lineGeo = new THREE.TubeGeometry(curve, 30, 0.1, 10, false);
+      const lineGeo = new THREE.TubeGeometry(curve, 30, 0.08, 8, false);
       const lineMat = new THREE.MeshBasicMaterial({
         color: new THREE.Color(conn.color || "#3b82f6"),
         transparent: true,
-        opacity: 0.7,
+        opacity: 0.75,
       });
       const tubeMesh = new THREE.Mesh(lineGeo, lineMat);
       scene.add(tubeMesh);
 
       // Animated Glowing Data Pulse Sphere
-      const pulseGeo = new THREE.SphereGeometry(0.35, 16, 16);
+      const pulseGeo = new THREE.SphereGeometry(0.32, 16, 16);
       const pulseMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
       const pulseMesh = new THREE.Mesh(pulseGeo, pulseMat);
       scene.add(pulseMesh);
@@ -447,12 +358,19 @@ export function Architecture3DView() {
       animationFrameId = requestAnimationFrame(animate);
       controls.update();
 
-      // Rotate cyber starfield slightly
+      // Make 3D Cards billboard (face camera) slightly
+      nodeMeshesRef.current.forEach((obj) => {
+        if (obj && cameraRef.current) {
+          obj.quaternion.copy(cameraRef.current.quaternion);
+        }
+      });
+
+      // Rotate cyber dust particles
       particleSystem.rotation.y += 0.0004;
 
-      // Animate Data Flow Laser Pulse Spheres along curves
+      // Animate Data Flow Laser Pulse Spheres
       flowParticlesRef.current.forEach((item) => {
-        item.progress = (item.progress + 0.008) % 1.0;
+        item.progress = (item.progress + 0.009) % 1.0;
         const pos = item.curve.getPointAt(item.progress);
         item.mesh.position.copy(pos);
       });
@@ -489,8 +407,8 @@ export function Architecture3DView() {
     const camera = cameraRef.current;
     const controls = controlsRef.current;
 
-    controls.target.set(tx, ty + 2, tz);
-    camera.position.set(tx, ty + 12, tz + 16);
+    controls.target.set(tx, 3.5, tz);
+    camera.position.set(tx, 10, tz + 16);
     controls.update();
   }, [cameraTarget]);
 
@@ -514,10 +432,10 @@ export function Architecture3DView() {
             <h2 className="text-xs font-bold tracking-wide text-zinc-100 flex items-center gap-2">
               Codebase 3D Architecture
               <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                CYBER 3D WEBGL
+                3D CARDS GRAPH
               </span>
             </h2>
-            <p className="text-[10px] text-zinc-400">Interactive Cyberpunk Building & Dependency Graph</p>
+            <p className="text-[10px] text-zinc-400">Interactive Floating 3D Cards & Interconnection Mesh</p>
           </div>
         </div>
 
@@ -529,7 +447,7 @@ export function Architecture3DView() {
               type="text"
               value={aiPromptInput}
               onChange={(e) => setAiPromptInput(e.target.value)}
-              placeholder="AI Search: 'Where is payment handled?'"
+              placeholder="AI Search: 'build system design of Agentic AI'"
               className="w-64 rounded-lg border border-indigo-500/40 bg-indigo-950/50 pl-8 pr-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-400 outline-none focus:border-indigo-400 shadow-inner"
             />
           </form>
