@@ -24,7 +24,7 @@ import {
   X,
 } from "lucide-react";
 
-// Helper to create 3D Canvas Text Sprite Cards (Cards Floating in 3D Space)
+// Helper to create 3D Canvas Text Sprite Cards (Pure Floating 3D Cards)
 function createCardTexture(text: string, subtext: string, colorStr: string, status: string, isSelected: boolean) {
   const canvas = document.createElement("canvas");
   canvas.width = 512;
@@ -32,7 +32,7 @@ function createCardTexture(text: string, subtext: string, colorStr: string, stat
   const ctx = canvas.getContext("2d")!;
 
   // Background Glass Card
-  ctx.fillStyle = isSelected ? "rgba(18, 18, 28, 0.95)" : "rgba(10, 10, 18, 0.88)";
+  ctx.fillStyle = isSelected ? "rgba(22, 22, 34, 0.96)" : "rgba(12, 12, 20, 0.90)";
   ctx.strokeStyle = isSelected ? "#ffffff" : colorStr;
   ctx.lineWidth = isSelected ? 8 : 5;
 
@@ -139,7 +139,7 @@ export function Architecture3DView() {
     }
   }, [nodes, setNodes, setConnections]);
 
-  // Setup Floating 3D Cards WebGL Scene (NO BLOCKS)
+  // Setup Pure Floating 3D Cards WebGL Scene (ZERO BLOCKS, ZERO CYLINDERS)
   useEffect(() => {
     if (!mountRef.current) return;
     const container = mountRef.current;
@@ -153,14 +153,12 @@ export function Architecture3DView() {
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
-    camera.position.set(0, 14, 24);
+    camera.position.set(0, 10, 24);
     cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.2;
     container.appendChild(renderer.domElement);
@@ -172,30 +170,14 @@ export function Architecture3DView() {
     controls.maxPolarAngle = Math.PI / 2.05;
     controlsRef.current = controls;
 
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+    // Ambient Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.8);
-    dirLight.position.set(20, 35, 25);
-    scene.add(dirLight);
-
-    // High-Tech Cyber Floor Grid
+    // High-Tech Cyber Grid Floor
     const gridHelper = new THREE.GridHelper(50, 50, 0x3b82f6, 0x1e1e2e);
-    gridHelper.position.y = -0.01;
+    gridHelper.position.y = -4;
     scene.add(gridHelper);
-
-    // Dark Floor Reflection Plane
-    const floorGeo = new THREE.PlaneGeometry(80, 80);
-    const floorMat = new THREE.MeshStandardMaterial({
-      color: 0x06060a,
-      roughness: 0.1,
-      metalness: 0.9,
-    });
-    const floorMesh = new THREE.Mesh(floorGeo, floorMat);
-    floorMesh.rotation.x = -Math.PI / 2;
-    floorMesh.position.y = -0.05;
-    scene.add(floorMesh);
 
     // Floating Cyber Dust Particles
     const particleCount = 350;
@@ -214,37 +196,15 @@ export function Architecture3DView() {
     const particleSystem = new THREE.Points(particlesGeo, particleMat);
     scene.add(particleSystem);
 
-    // ── Build Floating 3D Cards Only (NO BLOCKS) ──
+    // ── Build Floating 3D Cards Only (NO BLOCKS, NO CYLINDERS, NO STEMS) ──
     nodeMeshesRef.current.clear();
     const clickables: THREE.Object3D[] = [];
 
     nodes.forEach((node) => {
-      const group = new THREE.Group();
-      const cardY = 3.5;
-      group.position.set(node.position[0], cardY, node.position[2]);
+      const isSelected = selectedNodeId === node.id;
       const nodeColor = new THREE.Color(node.color);
 
-      const isSelected = selectedNodeId === node.id;
-
-      // 1. Neon Ground Glow Ring on Cyber Floor
-      const ringGeo = new THREE.TorusGeometry(1.8, 0.08, 16, 32);
-      const ringMat = new THREE.MeshBasicMaterial({ color: nodeColor });
-      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
-      ringMesh.rotation.x = Math.PI / 2;
-      ringMesh.position.set(0, -cardY + 0.02, 0);
-      group.add(ringMesh);
-
-      // Vertical Laser Line connecting ground ring up to floating card
-      const lineGeo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, -cardY, 0),
-        new THREE.Vector3(0, 0, 0),
-      ]);
-      const lineMat = new THREE.LineDashedMaterial({ color: nodeColor, dashSize: 0.2, gapSize: 0.1 });
-      const verticalLine = new THREE.Line(lineGeo, lineMat);
-      verticalLine.computeLineDistances();
-      group.add(verticalLine);
-
-      // 2. Floating 3D Glass Card Mesh (Raycast target)
+      // Create 3D Floating Glass Card Mesh
       const texture = createCardTexture(
         node.name,
         `${node.metrics?.filesCount || 8} FILES • ${node.type}`,
@@ -253,7 +213,7 @@ export function Architecture3DView() {
         isSelected
       );
 
-      const cardGeo = new THREE.PlaneGeometry(6.5, 3.6);
+      const cardGeo = new THREE.PlaneGeometry(6.8, 3.7);
       const cardMat = new THREE.MeshBasicMaterial({
         map: texture,
         transparent: true,
@@ -261,21 +221,16 @@ export function Architecture3DView() {
       });
 
       const cardMesh = new THREE.Mesh(cardGeo, cardMat);
-      cardMesh.position.set(0, 0, 0);
+      // Floating directly in 3D space at node position
+      cardMesh.position.set(node.position[0], node.position[1] || 2, node.position[2]);
       cardMesh.userData = { id: node.id, filePath: node.filePath, name: node.name };
-      group.add(cardMesh);
+
+      scene.add(cardMesh);
       clickables.push(cardMesh);
-
-      // Glowing Pointlight below card
-      const pLight = new THREE.PointLight(nodeColor, 2.5, 10);
-      pLight.position.set(0, -1, 0);
-      group.add(pLight);
-
-      scene.add(group);
       nodeMeshesRef.current.set(node.id, cardMesh);
     });
 
-    // ── Build 3D Laser Flow Connectors Between Floating Cards ──
+    // ── Build 3D Laser Flow Connectors Directly Between Floating Cards ──
     flowParticlesRef.current = [];
 
     connections.forEach((conn) => {
@@ -283,10 +238,10 @@ export function Architecture3DView() {
       const toNode = nodes.find((n) => n.id === conn.toId);
       if (!fromNode || !toNode) return;
 
-      const start = new THREE.Vector3(fromNode.position[0], 3.5, fromNode.position[2]);
-      const end = new THREE.Vector3(toNode.position[0], 3.5, toNode.position[2]);
+      const start = new THREE.Vector3(fromNode.position[0], fromNode.position[1] || 2, fromNode.position[2]);
+      const end = new THREE.Vector3(toNode.position[0], toNode.position[1] || 2, toNode.position[2]);
 
-      const midY = Math.max(start.y, end.y) + 2.5;
+      const midY = Math.max(start.y, end.y) + 2;
       const points = [
         start,
         new THREE.Vector3((start.x * 2 + end.x) / 3, midY, (start.z * 2 + end.z) / 3),
@@ -299,7 +254,7 @@ export function Architecture3DView() {
       const lineMat = new THREE.MeshBasicMaterial({
         color: new THREE.Color(conn.color || "#3b82f6"),
         transparent: true,
-        opacity: 0.75,
+        opacity: 0.8,
       });
       const tubeMesh = new THREE.Mesh(lineGeo, lineMat);
       scene.add(tubeMesh);
@@ -354,12 +309,16 @@ export function Architecture3DView() {
 
     // ── Animation Loop ──
     let animationFrameId: number;
+    let clock = new THREE.Clock();
+
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
       controls.update();
 
-      // Make 3D Cards billboard (face camera) slightly
-      nodeMeshesRef.current.forEach((obj) => {
+      const time = clock.getElapsedTime();
+
+      // Make 3D Cards face camera (billboard) and float smoothly
+      nodeMeshesRef.current.forEach((obj, id) => {
         if (obj && cameraRef.current) {
           obj.quaternion.copy(cameraRef.current.quaternion);
         }
@@ -407,8 +366,8 @@ export function Architecture3DView() {
     const camera = cameraRef.current;
     const controls = controlsRef.current;
 
-    controls.target.set(tx, 3.5, tz);
-    camera.position.set(tx, 10, tz + 16);
+    controls.target.set(tx, ty || 2, tz);
+    camera.position.set(tx, (ty || 2) + 8, tz + 16);
     controls.update();
   }, [cameraTarget]);
 
@@ -432,7 +391,7 @@ export function Architecture3DView() {
             <h2 className="text-xs font-bold tracking-wide text-zinc-100 flex items-center gap-2">
               Codebase 3D Architecture
               <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                3D CARDS GRAPH
+                PURE FLOATING CARDS
               </span>
             </h2>
             <p className="text-[10px] text-zinc-400">Interactive Floating 3D Cards & Interconnection Mesh</p>
