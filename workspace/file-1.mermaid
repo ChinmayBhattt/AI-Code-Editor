@@ -1,0 +1,11 @@
+graph LR
+    A[Perception Module] -->|Data|> B[Reasoning Module]
+    B -->|Decision|> C[Action Module]
+    C -->|Feedback|> A
+    A -->|Knowledge|> D[Knowledge Module]
+    D -->|Knowledge|> B
+    E[Goal Module] -->|Objectives|> B
+    B -->|Performance|> F[Learning Module]
+    F -->|Improved Models|> B
+    G[Interface Module] -->|Input|> A
+    G -->|Output|> B

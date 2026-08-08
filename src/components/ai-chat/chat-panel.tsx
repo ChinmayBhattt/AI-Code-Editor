@@ -6,6 +6,8 @@ import { useEditorStore } from "@/stores/editor-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useAutomationStore } from "@/stores/automation-store";
 import { useArchitecture3DStore } from "@/stores/architecture-3d-store";
+import { AICompanionWidget } from "@/components/companion/ai-companion-widget";
+import { useAICompanionStore } from "@/stores/ai-companion-store";
 import { MessageBubble } from "./message-bubble";
 import { ChatInput } from "./chat-input";
 import { parseFileOperations, parseAutomationWorkflow } from "@/lib/ai/file-operations";
@@ -355,6 +357,9 @@ export function ChatPanel() {
           </button>
         </div>
       </div>
+
+      {/* 3D AI Assistant Character Companion Widget */}
+      <AICompanionWidget />
 
       {/* Chat History Overlay */}
       {historyOpen && <ChatHistory />}
