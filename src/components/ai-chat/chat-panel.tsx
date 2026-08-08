@@ -6,8 +6,6 @@ import { useEditorStore } from "@/stores/editor-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useAutomationStore } from "@/stores/automation-store";
 import { useArchitecture3DStore } from "@/stores/architecture-3d-store";
-import { AICompanionWidget } from "@/components/companion/ai-companion-widget";
-import { useAICompanionStore } from "@/stores/ai-companion-store";
 import { MessageBubble } from "./message-bubble";
 import { ChatInput } from "./chat-input";
 import { parseFileOperations, parseAutomationWorkflow } from "@/lib/ai/file-operations";
@@ -71,7 +69,7 @@ export function ChatPanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ filePath, content, action }),
       });
-    } catch {}
+    } catch { }
   };
 
   // Sync filesystem Explorer tree from workspace/
@@ -82,7 +80,7 @@ export function ChatPanel() {
       if (data.files) {
         setFiles(data.files);
       }
-    } catch {}
+    } catch { }
   };
 
   // Proceed from Plan Mode to Build Mode
@@ -151,17 +149,6 @@ export function ChatPanel() {
     };
     addMessage(userMessage);
     setStreaming(true);
-
-    // Auto-generate 3D System Architecture if prompt requests system design or 3d architecture
-    const promptLower = userPrompt.toLowerCase();
-    if (
-      promptLower.includes("system design") ||
-      promptLower.includes("3d architecture") ||
-      promptLower.includes("agentic ai") ||
-      promptLower.includes("3d design")
-    ) {
-      useArchitecture3DStore.getState().runAISearch(userPrompt);
-    }
 
     try {
       const activeTab = tabs.find((t) => t.id === activeTabId);
@@ -261,8 +248,8 @@ export function ChatPanel() {
                 (op.type as string) === "delete"
                   ? "delete"
                   : existing
-                  ? "edit"
-                  : "create",
+                    ? "edit"
+                    : "create",
               content: newContent,
               originalContent,
               additions: newContent.split("\n").length,
@@ -304,11 +291,10 @@ export function ChatPanel() {
           <Sparkles className="h-4 w-4 text-indigo-400" />
           <span>Agent</span>
           <span
-            className={`px-1.5 py-0.2 rounded text-[10px] uppercase tracking-wider font-mono font-bold ${
-              aiConfig.mode === "plan"
+            className={`px-1.5 py-0.2 rounded text-[10px] uppercase tracking-wider font-mono font-bold ${aiConfig.mode === "plan"
                 ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
                 : "bg-blue-500/20 text-blue-300 border border-blue-500/30"
-            }`}
+              }`}
           >
             {aiConfig.mode}
           </span>
@@ -328,9 +314,8 @@ export function ChatPanel() {
           <button
             onClick={toggleHistoryOpen}
             title="Chat History"
-            className={`relative rounded p-1.5 hover:bg-zinc-800 transition-colors ${
-              historyOpen ? "bg-zinc-800 text-indigo-400" : "text-zinc-400 hover:text-white"
-            }`}
+            className={`relative rounded p-1.5 hover:bg-zinc-800 transition-colors ${historyOpen ? "bg-zinc-800 text-indigo-400" : "text-zinc-400 hover:text-white"
+              }`}
           >
             <Clock className="h-4 w-4" />
             {sessions.length > 0 && (
@@ -357,9 +342,6 @@ export function ChatPanel() {
           </button>
         </div>
       </div>
-
-      {/* 3D AI Assistant Character Companion Widget */}
-      <AICompanionWidget />
 
       {/* Chat History Overlay */}
       {historyOpen && <ChatHistory />}
