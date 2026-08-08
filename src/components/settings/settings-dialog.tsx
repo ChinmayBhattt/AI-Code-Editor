@@ -3,9 +3,10 @@
 import { useSettingsStore } from "@/stores/settings-store";
 import { useEditorStore } from "@/stores/editor-store";
 import { AI_MODELS } from "@/types/settings";
-import { X, Key, Sliders, Monitor, Sparkles, Check } from "lucide-react";
+import { X, Key, Sliders, Monitor, Sparkles, Check, Cpu } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { MCPSettingsPanel } from "./mcp-settings";
 
 export function SettingsDialog() {
   const {
@@ -20,7 +21,7 @@ export function SettingsDialog() {
   } = useSettingsStore();
 
   const { settings, updateSettings } = useEditorStore();
-  const [activeTab, setActiveTab] = useState<"keys" | "ai" | "editor">("keys");
+  const [activeTab, setActiveTab] = useState<"keys" | "ai" | "editor" | "mcp">("keys");
   const [saved, setSaved] = useState(false);
 
   if (!settingsDialogOpen) return null;
@@ -35,7 +36,7 @@ export function SettingsDialog() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="flex h-[450px] w-[650px] flex-col rounded-xl border border-zinc-800 bg-[#141417] shadow-2xl text-zinc-300">
+      <div className="flex h-[520px] w-[720px] flex-col rounded-xl border border-zinc-800 bg-[#141417] shadow-2xl text-zinc-300">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
           <h2 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
@@ -52,7 +53,7 @@ export function SettingsDialog() {
         {/* Body */}
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar */}
-          <div className="w-44 border-r border-zinc-800 p-2 space-y-1 bg-[#18181b]">
+          <div className="w-48 border-r border-zinc-800 p-2 space-y-1 bg-[#18181b] shrink-0">
             <button
               onClick={() => setActiveTab("keys")}
               className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
@@ -75,6 +76,18 @@ export function SettingsDialog() {
               <Sparkles className="h-3.5 w-3.5" /> AI Model Config
             </button>
 
+            {/* MCP Servers Tab */}
+            <button
+              onClick={() => setActiveTab("mcp")}
+              className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                activeTab === "mcp"
+                  ? "bg-cyan-600/20 text-cyan-400 border border-cyan-500/30"
+                  : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200"
+              }`}
+            >
+              <Cpu className="h-3.5 w-3.5 text-cyan-400" /> MCP Servers
+            </button>
+
             <button
               onClick={() => setActiveTab("editor")}
               className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
@@ -83,7 +96,7 @@ export function SettingsDialog() {
                   : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200"
               }`}
             >
-              <Monitor className="h-3.5 w-3.5" /> Editor Preferences
+              <Monitor className="h-3.5 w-3.5" /> Editor & Theme
             </button>
           </div>
 
@@ -184,6 +197,8 @@ export function SettingsDialog() {
                 </div>
               </div>
             )}
+
+            {activeTab === "mcp" && <MCPSettingsPanel />}
 
             {activeTab === "editor" && (
               <div className="space-y-4">

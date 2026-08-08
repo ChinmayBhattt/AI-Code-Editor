@@ -202,6 +202,35 @@ export async function executeWorkflow(
           break;
         }
 
+        case "mcp": {
+          const serverId = (node.config.serverId as string) || "mcp-github";
+          const toolName = (node.config.toolName as string) || "create_issue";
+          const args = (node.config.args as Record<string, unknown>) || {};
+
+          onLog(`   🔌 Invoking MCP Tool [${serverId}:${toolName}]...`, "info");
+
+          try {
+            const { useMCPStore } = await import("@/stores/mcp-store");
+            const mcpResult = await useMCPStore.getState().executeTool({
+              serverId,
+              toolName,
+              args,
+            });
+
+            if (mcpResult.success) {
+              result = mcpResult.output;
+              onLog(`   🔌 MCP Tool Result (${mcpResult.executionTimeMs}ms):\n${JSON.stringify(result, null, 2)}`, "log");
+            } else {
+              result = { error: mcpResult.error };
+              onLog(`   ❌ MCP Tool Failed: ${mcpResult.error}`, "error");
+            }
+          } catch (mcpErr: any) {
+            result = { error: mcpErr.message };
+            onLog(`   ❌ MCP Execution Error: ${mcpErr.message}`, "error");
+          }
+          break;
+        }
+
         case "output": {
           result = { output: inputData, format: node.config.format || "json", timestamp: new Date().toISOString() };
           onLog(`   📊 Output Node (${node.label}):\n${JSON.stringify(inputData, null, 2)}`, "log");

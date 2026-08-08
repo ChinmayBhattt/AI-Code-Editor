@@ -27,6 +27,7 @@ Available Node Types:
 - AI: "ai-agent" (e.g. AI Text Generator, AI Code Reviewer, AI Summarizer)
 - Code: "code" (e.g. JavaScript, Python Script, Data Transform)
 - Output: "output" (e.g. Console Output, Save to File)
+- MCP: "mcp" (Model Context Protocol Tool Calls: GitHub, SQLite, Brave Search, Filesystem)
 
 CRITICAL INSTRUCTIONS FOR AUTOMATION MODE:
 1. The user is currently in the **Automations Builder Window**.

@@ -6,7 +6,8 @@ export type AutomationNodeType =
   | "condition"
   | "ai-agent"
   | "code"
-  | "output";
+  | "output"
+  | "mcp";
 
 export interface NodePort {
   id: string;
@@ -288,6 +289,21 @@ export const NODE_TEMPLATES: NodeTemplate[] = [
     inputs: [{ id: "in", label: "Input" }],
     outputs: [],
   },
+  // ── MCP Protocol ──
+  {
+    type: "mcp",
+    label: "MCP Tool Call",
+    description: "Execute tool on an MCP (Model Context Protocol) server",
+    icon: "Cpu",
+    category: "MCP",
+    defaultConfig: {
+      serverId: "mcp-github",
+      toolName: "create_issue",
+      args: { title: "Bug report from automation", owner: "user", repo: "app" },
+    },
+    inputs: [{ id: "in", label: "Input" }],
+    outputs: [{ id: "out", label: "Result" }],
+  },
 ];
 
 // ─── Node Type Visual Config ─────────────────────────────────────────────────
@@ -337,5 +353,12 @@ export const NODE_TYPE_COLORS: Record<
     text: "text-rose-300",
     glow: "shadow-rose-500/20",
     icon: "text-rose-400",
+  },
+  mcp: {
+    bg: "bg-cyan-950/60",
+    border: "border-cyan-500/40",
+    text: "text-cyan-300",
+    glow: "shadow-cyan-500/20",
+    icon: "text-cyan-400",
   },
 };

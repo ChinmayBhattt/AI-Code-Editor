@@ -29,9 +29,11 @@ import {
   Save,
   Zap,
   ChevronRight,
+  Cpu,
 } from "lucide-react";
 
 function getIconComponent(label: string): React.ComponentType<{ className?: string }> {
+  if (label.includes("MCP")) return Cpu;
   if (label.includes("Webhook")) return Webhook;
   if (label.includes("Schedule")) return Clock;
   if (label.includes("Manual")) return Play;
@@ -67,7 +69,7 @@ export function NodePalette() {
     {} as Record<string, NodeTemplate[]>
   );
 
-  const categoryOrder = ["Triggers", "Actions", "Logic", "AI", "Code", "Output"];
+  const categoryOrder = ["Triggers", "Actions", "Logic", "AI", "Code", "Output", "MCP"];
 
   const filteredCategories = Object.fromEntries(
     Object.entries(categories)
@@ -96,6 +98,7 @@ export function NodePalette() {
     AI: Sparkles,
     Code: Code,
     Output: Monitor,
+    MCP: Cpu,
   };
 
   const categoryColors: Record<string, string> = {
@@ -105,6 +108,7 @@ export function NodePalette() {
     AI: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
     Code: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
     Output: "text-rose-400 bg-rose-500/10 border-rose-500/20",
+    MCP: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
   };
 
   return (

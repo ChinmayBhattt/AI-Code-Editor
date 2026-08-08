@@ -385,6 +385,53 @@ export function NodeConfigPanel() {
           </>
         );
 
+      case "mcp":
+        return (
+          <>
+            <FieldGroup label="Target MCP Server">
+              <select
+                value={(localConfig.serverId as string) || "mcp-github"}
+                onChange={(e) => updateConfigField("serverId", e.target.value)}
+                className="field-input"
+              >
+                <option value="mcp-github">GitHub MCP Server</option>
+                <option value="mcp-sqlite">SQLite Database MCP</option>
+                <option value="mcp-brave-search">Brave Web Search MCP</option>
+                <option value="mcp-filesystem">Filesystem MCP Server</option>
+              </select>
+            </FieldGroup>
+            <FieldGroup label="Tool Name">
+              <input
+                value={(localConfig.toolName as string) || "create_issue"}
+                onChange={(e) => updateConfigField("toolName", e.target.value)}
+                placeholder="e.g. create_issue, sqlite_query"
+                className="field-input font-mono text-cyan-300"
+              />
+            </FieldGroup>
+            <FieldGroup label="Tool Arguments (JSON)">
+              <textarea
+                value={
+                  typeof localConfig.args === "object"
+                    ? JSON.stringify(localConfig.args, null, 2)
+                    : (localConfig.args as string) || "{}"
+                }
+                onChange={(e) => {
+                  try {
+                    const parsed = JSON.parse(e.target.value);
+                    updateConfigField("args", parsed);
+                  } catch {
+                    updateConfigField("args", e.target.value);
+                  }
+                }}
+                placeholder='{ "owner": "user", "repo": "app" }'
+                className="field-input field-textarea font-mono text-cyan-200"
+                rows={5}
+                spellCheck={false}
+              />
+            </FieldGroup>
+          </>
+        );
+
       default:
         return (
           <div className="text-xs text-zinc-500 italic p-2">
