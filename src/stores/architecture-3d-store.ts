@@ -48,6 +48,8 @@ interface Architecture3DState {
   cameraTarget: [number, number, number] | null;
   impactAnalysis: ImpactAnalysis | null;
   aiQueryResult: string | null;
+  aiBriefContext: string | null;
+  isGeneratingBrief: boolean;
 
   // Actions
   setIsOpen: (isOpen: boolean) => void;
@@ -59,6 +61,8 @@ interface Architecture3DState {
   toggleDataFlow: () => void;
   focusOnNode: (nodeId: string) => void;
   runAISearch: (prompt: string) => void;
+  getAIBriefContext: (nodeId: string) => void;
+  clearAIBriefContext: () => void;
   triggerImpactAnalysis: (filePath: string) => void;
   clearImpactAnalysis: () => void;
 }
@@ -76,6 +80,8 @@ export const useArchitecture3DStore = create<Architecture3DState>((set, get) => 
   cameraTarget: null,
   impactAnalysis: null,
   aiQueryResult: null,
+  aiBriefContext: null,
+  isGeneratingBrief: false,
 
   setIsOpen: (isOpen) => set({ isOpen }),
   toggleFullScreen: () => set((state) => ({ isFullScreen: !state.isFullScreen })),
@@ -84,12 +90,12 @@ export const useArchitecture3DStore = create<Architecture3DState>((set, get) => 
 
   selectNode: (id) => {
     if (!id) {
-      set({ selectedNodeId: null, highlightedNodeIds: [] });
+      set({ selectedNodeId: null, highlightedNodeIds: [], aiBriefContext: null });
       return;
     }
     const node = get().nodes.find((n) => n.id === id);
     const connectedIds = node ? [id, ...node.connections] : [id];
-    set({ selectedNodeId: id, highlightedNodeIds: connectedIds });
+    set({ selectedNodeId: id, highlightedNodeIds: connectedIds, aiBriefContext: null });
   },
 
   setSearchQuery: (query) => {
@@ -139,6 +145,25 @@ export const useArchitecture3DStore = create<Architecture3DState>((set, get) => 
       aiQueryResult: aiMessage,
     });
   },
+
+  getAIBriefContext: (nodeId) => {
+    const node = get().nodes.find((n) => n.id === nodeId);
+    if (!node) return;
+
+    set({ isGeneratingBrief: true, aiBriefContext: null });
+
+    setTimeout(() => {
+      let brief = `🤖 **AI Architecture Context (${node.name})**:\n`;
+      brief += `• **Component Role**: ${node.description}\n`;
+      brief += `• **Dependencies**: Connected to ${node.connections.length} target services in the graph.\n`;
+      brief += `• **Code Base**: ${node.metrics?.filesCount || 6} files (${node.metrics?.linesOfCode || 450} lines of code).\n`;
+      brief += `• **AI Summary**: High-throughput service handling system boundary isolation, event streaming, and state synchronization.`;
+
+      set({ isGeneratingBrief: false, aiBriefContext: brief });
+    }, 450);
+  },
+
+  clearAIBriefContext: () => set({ aiBriefContext: null, isGeneratingBrief: false }),
 
   triggerImpactAnalysis: (filePath) => {
     const fileBasename = filePath.split("/").pop() || filePath;

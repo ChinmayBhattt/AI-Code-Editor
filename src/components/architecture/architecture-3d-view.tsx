@@ -111,6 +111,10 @@ export function Architecture3DView() {
     clearImpactAnalysis,
     runAISearch,
     aiQueryResult,
+    aiBriefContext,
+    isGeneratingBrief,
+    getAIBriefContext,
+    clearAIBriefContext,
     isFullScreen,
     toggleFullScreen,
     setIsOpen,
@@ -126,10 +130,10 @@ export function Architecture3DView() {
   const nodeMeshesRef = useRef<Map<string, THREE.Object3D>>(new Map());
   const flowParticlesRef = useRef<{ mesh: THREE.Mesh; curve: THREE.CatmullRomCurve3; progress: number }[]>([]);
 
-  // Initialize 3D Architecture Data on mount (Starts with Single Square Block)
+  // Initialize 3D Architecture Data on mount (Full Architecture Graph)
   useEffect(() => {
     if (nodes.length === 0) {
-      const { nodes: initialNodes, connections: initialConnections } = getSingleRootArchitecture();
+      const { nodes: initialNodes, connections: initialConnections } = generateDefaultArchitecture();
       setNodes(initialNodes);
       setConnections(initialConnections);
     }
@@ -600,39 +604,82 @@ export function Architecture3DView() {
 
       {/* ── Bottom Floating Selected Node Info Card ── */}
       {selectedNode && (
-        <div className="absolute bottom-4 right-4 z-30 w-80 rounded-xl border border-zinc-800 bg-zinc-950/90 p-4 shadow-2xl backdrop-blur animate-in fade-in duration-200">
+        <div className="absolute bottom-4 right-4 z-30 w-96 rounded-xl border border-zinc-800 bg-zinc-950/95 p-4 shadow-2xl backdrop-blur animate-in fade-in duration-200">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <div
-                className="h-3 w-3 rounded-full shadow"
+                className="h-3 w-3 rounded-full shadow-lg"
                 style={{ backgroundColor: selectedNode.color }}
               />
               <span className="font-bold text-xs text-zinc-100">{selectedNode.name}</span>
             </div>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-800 text-zinc-300 border border-zinc-700">
-              {selectedNode.type.toUpperCase()}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-800 text-zinc-300 border border-zinc-700">
+                {selectedNode.type.toUpperCase()}
+              </span>
+              <button
+                onClick={() => selectNode(null)}
+                className="text-zinc-500 hover:text-zinc-300 p-0.5"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
 
-          <p className="text-xs text-zinc-400 mb-3">{selectedNode.description}</p>
+          <p className="text-xs text-zinc-300 mb-2 font-medium">{selectedNode.description}</p>
 
-          {selectedNode.filePath && (
+          {/* Node Metrics & Connections */}
+          <div className="grid grid-cols-2 gap-2 mb-3 p-2 rounded-lg bg-zinc-900/80 border border-zinc-800 text-[10px] font-mono text-zinc-400">
+            <div>• Files: <span className="text-zinc-200 font-bold">{selectedNode.metrics?.filesCount || 8}</span></div>
+            <div>• Lines of Code: <span className="text-zinc-200 font-bold">{selectedNode.metrics?.linesOfCode || 650}</span></div>
+            <div className="col-span-2 text-zinc-300">• Connected to: <span className="text-blue-400 font-semibold">{selectedNode.connections.length > 0 ? selectedNode.connections.join(", ") : "End Target Service"}</span></div>
+          </div>
+
+          {/* AI Brief Context Box */}
+          {aiBriefContext ? (
+            <div className="mb-3 p-2.5 rounded-lg bg-indigo-950/40 border border-indigo-500/30 text-xs text-indigo-200 space-y-1 animate-in fade-in duration-200">
+              <div className="font-bold text-[11px] text-indigo-300 flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <Sparkles className="h-3.5 w-3.5 text-indigo-400" /> AI Brief Context
+                </span>
+                <button onClick={clearAIBriefContext} className="text-indigo-400 hover:text-white text-[10px]">Close</button>
+              </div>
+              <p className="whitespace-pre-line text-[11px] leading-relaxed text-indigo-100">{aiBriefContext}</p>
+            </div>
+          ) : isGeneratingBrief ? (
+            <div className="mb-3 p-2.5 rounded-lg bg-indigo-950/40 border border-indigo-500/30 text-xs text-indigo-300 flex items-center gap-2 animate-pulse">
+              <Sparkles className="h-4 w-4 animate-spin text-indigo-400" />
+              <span>Generating AI Brief Context for {selectedNode.name}...</span>
+            </div>
+          ) : null}
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2">
             <button
-              onClick={() =>
-                openTab({
-                  id: `file-${selectedNode.id}`,
-                  fileId: `file-${selectedNode.id}`,
-                  name: selectedNode.filePath!.split("/").pop() || selectedNode.filePath!,
-                  path: selectedNode.filePath!,
-                  content: `// Source file for ${selectedNode.name}\n`,
-                  language: "typescript",
-                })
-              }
-              className="flex items-center justify-center gap-1.5 w-full py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all shadow"
+              onClick={() => getAIBriefContext(selectedNode.id)}
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-xs transition-all shadow"
             >
-              <FileCode className="h-3.5 w-3.5" /> Open Code ({selectedNode.filePath.split("/").pop()})
+              <Sparkles className="h-3.5 w-3.5" /> AI Brief Context
             </button>
-          )}
+
+            {selectedNode.filePath && (
+              <button
+                onClick={() =>
+                  openTab({
+                    id: `file-${selectedNode.id}`,
+                    fileId: `file-${selectedNode.id}`,
+                    name: selectedNode.filePath!.split("/").pop() || selectedNode.filePath!,
+                    path: selectedNode.filePath!,
+                    content: `// Source file for ${selectedNode.name}\n`,
+                    language: "typescript",
+                  })
+                }
+                className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all shadow"
+              >
+                <FileCode className="h-3.5 w-3.5" /> Open Code
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
