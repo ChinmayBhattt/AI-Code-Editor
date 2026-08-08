@@ -5,6 +5,7 @@ import { useProjectStore } from "@/stores/project-store";
 import { useEditorStore } from "@/stores/editor-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useAutomationStore } from "@/stores/automation-store";
+import { useArchitecture3DStore } from "@/stores/architecture-3d-store";
 import { MessageBubble } from "./message-bubble";
 import { ChatInput } from "./chat-input";
 import { parseFileOperations, parseAutomationWorkflow } from "@/lib/ai/file-operations";
@@ -148,6 +149,17 @@ export function ChatPanel() {
     };
     addMessage(userMessage);
     setStreaming(true);
+
+    // Auto-generate 3D System Architecture if prompt requests system design or 3d architecture
+    const promptLower = userPrompt.toLowerCase();
+    if (
+      promptLower.includes("system design") ||
+      promptLower.includes("3d architecture") ||
+      promptLower.includes("agentic ai") ||
+      promptLower.includes("3d design")
+    ) {
+      useArchitecture3DStore.getState().runAISearch(userPrompt);
+    }
 
     try {
       const activeTab = tabs.find((t) => t.id === activeTabId);

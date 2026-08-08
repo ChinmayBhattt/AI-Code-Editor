@@ -126,33 +126,18 @@ export const useArchitecture3DStore = create<Architecture3DState>((set, get) => 
   },
 
   runAISearch: (prompt) => {
-    const p = prompt.toLowerCase();
-    let targetId = "frontend";
-    let message = "Focusing on Frontend UI Components architecture.";
+    const { generateArchitectureFromPrompt } = require("@/lib/architecture/codebase-analyzer");
+    const { nodes: newNodes, connections: newConnections, aiMessage } = generateArchitectureFromPrompt(prompt);
 
-    if (p.includes("auth") || p.includes("login") || p.includes("user")) {
-      targetId = "auth-service";
-      message = "Focusing on Authentication & User Security Layer.";
-    } else if (p.includes("pay") || p.includes("checkout") || p.includes("store")) {
-      targetId = "api-gateway";
-      message = "Focusing on Payment Gateway & API Endpoints.";
-    } else if (p.includes("data") || p.includes("db") || p.includes("prisma") || p.includes("sql")) {
-      targetId = "database";
-      message = "Focusing on Database & Persistence Schema.";
-    } else if (p.includes("backend") || p.includes("api") || p.includes("server")) {
-      targetId = "backend-server";
-      message = "Focusing on Backend Node Server & Routes.";
-    }
-
-    const targetNode = get().nodes.find((n) => n.id === targetId) || get().nodes[0];
-    if (targetNode) {
-      set({
-        selectedNodeId: targetNode.id,
-        highlightedNodeIds: [targetNode.id, ...targetNode.connections],
-        cameraTarget: targetNode.position,
-        aiQueryResult: message,
-      });
-    }
+    set({
+      nodes: newNodes,
+      connections: newConnections,
+      isOpen: true,
+      selectedNodeId: newNodes[0]?.id || null,
+      highlightedNodeIds: newNodes.map((n: any) => n.id),
+      cameraTarget: newNodes[0]?.position || [0, 2, 0],
+      aiQueryResult: aiMessage,
+    });
   },
 
   triggerImpactAnalysis: (filePath) => {

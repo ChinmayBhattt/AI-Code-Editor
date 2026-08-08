@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { useArchitecture3DStore, ArchitectureNode3D } from "@/stores/architecture-3d-store";
-import { generateDefaultArchitecture } from "@/lib/architecture/codebase-analyzer";
+import { generateDefaultArchitecture, getSingleRootArchitecture } from "@/lib/architecture/codebase-analyzer";
 import { useEditorStore } from "@/stores/editor-store";
 import {
   Box,
@@ -126,10 +126,10 @@ export function Architecture3DView() {
   const nodeMeshesRef = useRef<Map<string, THREE.Object3D>>(new Map());
   const flowParticlesRef = useRef<{ mesh: THREE.Mesh; curve: THREE.CatmullRomCurve3; progress: number }[]>([]);
 
-  // Initialize 3D Architecture Data on mount
+  // Initialize 3D Architecture Data on mount (Starts with Single Square Block)
   useEffect(() => {
     if (nodes.length === 0) {
-      const { nodes: initialNodes, connections: initialConnections } = generateDefaultArchitecture();
+      const { nodes: initialNodes, connections: initialConnections } = getSingleRootArchitecture();
       setNodes(initialNodes);
       setConnections(initialConnections);
     }
