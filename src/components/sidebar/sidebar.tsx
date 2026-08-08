@@ -1,11 +1,13 @@
 "use client";
 
 import { useSettingsStore } from "@/stores/settings-store";
-import { FolderTree, FolderGit2, Search, Settings, Zap } from "lucide-react";
+import { useBrowserAgentStore } from "@/stores/browser-agent-store";
+import { FolderTree, FolderGit2, Search, Settings, Zap, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function SidebarNav() {
   const { leftSidebarPanel, setLeftSidebarPanel, setSettingsDialogOpen } = useSettingsStore();
+  const { setIsOpen: setBrowserIsOpen, isOpen: browserIsOpen } = useBrowserAgentStore();
 
   const items = [
     { id: "explorer", label: "File Explorer", icon: FolderTree },
@@ -36,6 +38,20 @@ export function SidebarNav() {
             </button>
           );
         })}
+
+        {/* AI Browser Agent Icon */}
+        <button
+          onClick={() => setBrowserIsOpen(!browserIsOpen)}
+          title="AI Browser Agent"
+          className={cn(
+            "flex h-9 w-9 items-center justify-center rounded-lg transition-all",
+            browserIsOpen
+              ? "bg-blue-600/20 text-blue-400 border border-blue-500/30"
+              : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200"
+          )}
+        >
+          <Globe className="h-4 w-4" />
+        </button>
       </div>
 
       <button

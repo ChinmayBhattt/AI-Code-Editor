@@ -350,12 +350,22 @@ export function ChatPanel() {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center p-4 text-zinc-500 space-y-2">
+          <div className="flex flex-col items-center justify-center h-full text-center p-4 text-zinc-500 space-y-3">
             <Sparkles className="h-8 w-8 text-indigo-500/40" />
-            <p className="text-xs font-medium text-zinc-400">AI Coding Assistant</p>
-            <p className="text-[11px] text-zinc-500 max-w-[220px]">
-              Ask me to build apps, create plan.md, or edit code. Switch between Plan & Build mode below.
+            <p className="text-xs font-medium text-zinc-400">AI Coding & Browser Assistant</p>
+            <p className="text-[11px] text-zinc-500 max-w-[230px]">
+              Ask me to build apps, edit code, or test websites with the AI Browser Agent.
             </p>
+
+            <button
+              onClick={() => {
+                const { runAgentTask } = require("@/stores/browser-agent-store").useBrowserAgentStore.getState();
+                runAgentTask("Test the login flow and inspect website for bugs", "http://localhost:3000");
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-600/20 to-indigo-600/20 text-blue-300 border border-blue-500/30 text-xs font-semibold hover:bg-blue-600/30 transition-all shadow-md"
+            >
+              🌐 Launch AI Browser Agent Test
+            </button>
           </div>
         )}
 

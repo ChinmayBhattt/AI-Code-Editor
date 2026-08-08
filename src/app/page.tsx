@@ -19,6 +19,8 @@ import { BottomPanel } from "@/components/panel/bottom-panel";
 import { StatusBar } from "@/components/status-bar/status-bar";
 import { SettingsDialog } from "@/components/settings/settings-dialog";
 import { WorkflowCanvas } from "@/components/automation/workflow-canvas";
+import { AIBrowserPanel } from "@/components/browser/ai-browser-panel";
+import { useBrowserAgentStore } from "@/stores/browser-agent-store";
 import { GripVertical, GripHorizontal } from "lucide-react";
 
 export default function IDEMainPage() {
@@ -26,6 +28,7 @@ export default function IDEMainPage() {
     useSettingsStore();
   const { activeTabId, tabs } = useEditorStore();
   const { isCanvasActive } = useAutomationStore();
+  const { isOpen: browserIsOpen, isFullScreen: isBrowserFullScreen } = useBrowserAgentStore();
 
   const [leftWidth, setLeftWidth] = useState(250);
   const [rightWidth, setRightWidth] = useState(320);
@@ -143,6 +146,11 @@ export default function IDEMainPage() {
               <div className="flex-1 flex flex-col h-full overflow-hidden">
                 <WorkflowCanvas />
               </div>
+            ) : browserIsOpen && isBrowserFullScreen ? (
+              /* ── Fullscreen AI Browser Agent (replaces editor) ── */
+              <div className="flex-1 flex flex-col h-full overflow-hidden">
+                <AIBrowserPanel />
+              </div>
             ) : (
               <>
                 {/* Monaco Editor */}
@@ -164,9 +172,16 @@ export default function IDEMainPage() {
                 </div>
 
                 {/* Live Web Server Preview */}
-                {liveServerOpen && (
+                {liveServerOpen && !browserIsOpen && (
                   <div className="w-1/2 h-full border-l border-zinc-800/80 flex flex-col shrink-0">
                     <LiveServerPreview />
+                  </div>
+                )}
+
+                {/* AI Browser Agent Panel (Split View) */}
+                {browserIsOpen && !isBrowserFullScreen && (
+                  <div className="w-1/2 h-full border-l border-zinc-800/80 flex flex-col shrink-0">
+                    <AIBrowserPanel />
                   </div>
                 )}
               </>
